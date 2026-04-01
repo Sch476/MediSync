@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+server/venv/
+venv/
+
+# Environment secrets
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+
+# ChromaDB local data
+chroma_data/
+
+# Generated files
+server/audio_files/
+server/uploads/
+client/dist/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Claude
+.claude/
