@@ -16,11 +16,18 @@ import DoctorDashboard from "./pages/doctor/DoctorDashboard";
 import Consultation from "./pages/doctor/Consultation";
 import ClinicalNotes from "./pages/doctor/ClinicalNotes";
 import UploadPolicy from "./pages/doctor/UploadPolicy";
+import PatientAlerts from "./pages/doctor/PatientAlerts";
 
 // Insurer pages
 import InsurerDashboard from "./pages/insurer/InsurerDashboard";
 import Claims from "./pages/insurer/Claims";
 import Analytics from "./pages/insurer/Analytics";
+
+// Hospital pages
+import HospitalDashboard from "./pages/hospital/HospitalDashboard";
+import PatientRecords from "./pages/hospital/PatientRecords";
+import SubmitClaim from "./pages/hospital/SubmitClaim";
+import HospitalUploadPolicy from "./pages/hospital/HospitalUploadPolicy";
 
 // Patient pages
 import PatientDashboard from "./pages/patient/PatientDashboard";
@@ -28,6 +35,7 @@ import BillDecoder from "./pages/patient/BillDecoder";
 import DischargeSummary from "./pages/patient/DischargeSummary";
 import HealthCheck from "./pages/patient/HealthCheck";
 import MyClaims from "./pages/patient/MyClaims";
+import PatientUploadPolicy from "./pages/patient/PatientUploadPolicy";
 
 function RootRedirect() {
   const { user, loading } = useAuth();
@@ -52,9 +60,19 @@ export default function App() {
           }>
             <Route index element={<DoctorDashboard />} />
             <Route path="consultation" element={<Consultation />} />
-            <Route path="notes" element={<ClinicalNotes />} />
+            <Route path="clinical-notes" element={<ClinicalNotes />} />
             <Route path="upload-policy" element={<UploadPolicy />} />
-            <Route path="alerts" element={<DoctorDashboard />} />
+            <Route path="alerts" element={<PatientAlerts />} />
+          </Route>
+
+          {/* Hospital routes */}
+          <Route path="/hospital" element={
+            <ProtectedRoute allowedRoles={["hospital"]}><Layout /></ProtectedRoute>
+          }>
+            <Route index element={<HospitalDashboard />} />
+            <Route path="patients" element={<PatientRecords />} />
+            <Route path="submit-claim" element={<SubmitClaim />} />
+            <Route path="upload-policy" element={<HospitalUploadPolicy />} />
           </Route>
 
           {/* Insurer routes */}
@@ -71,6 +89,7 @@ export default function App() {
             <ProtectedRoute allowedRoles={["patient"]}><Layout /></ProtectedRoute>
           }>
             <Route index element={<PatientDashboard />} />
+            <Route path="upload-policy" element={<PatientUploadPolicy />} />
             <Route path="bill-decoder" element={<BillDecoder />} />
             <Route path="discharge" element={<DischargeSummary />} />
             <Route path="health-check" element={<HealthCheck />} />

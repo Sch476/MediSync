@@ -59,8 +59,10 @@ export default function Login() {
           <p style={{ fontSize: 12, color: "#666", marginBottom: 6 }}>Demo accounts (seeded):</p>
           {[
             { email: "doctor@demo.com", role: "Doctor" },
+            { email: "hospital@demo.com", role: "Hospital" },
             { email: "insurer@demo.com", role: "Insurer" },
-            { email: "patient@demo.com", role: "Patient" },
+            { email: "patient@demo.com", role: "Patient 1" },
+            { email: "patient2@demo.com", role: "Patient 2" },
           ].map((d) => (
             <button
               key={d.email}

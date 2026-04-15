@@ -177,17 +177,27 @@ async def get_analytics(current_user: dict = Depends(insurer_role)):
     rejected_claims = await db.claims.count_documents({"status": "rejected"})
     flagged_claims = await db.claims.count_documents({"status": "flagged"})
 
+    # Compute total amount across all claims
+    total_amount_result = await db.claims.aggregate([
+        {"$group": {"_id": None, "total": {"$sum": "$total_amount"}}}
+    ]).to_list(1)
+    total_amount = total_amount_result[0]["total"] if total_amount_result else 0
+
     return {
-        "summary": {
-            "total": total_claims,
-            "pending": pending_claims,
-            "approved": approved_claims,
-            "rejected": rejected_claims,
-            "flagged": flagged_claims,
-        },
-        "by_status": status_stats,
-        "by_diagnosis": diagnosis_stats,
-        "monthly_trend": monthly_stats,
+        "total_claims": total_claims,
+        "total_amount": total_amount,
+        "pending": pending_claims,
+        "approved": approved_claims,
+        "rejected": rejected_claims,
+        "flagged": flagged_claims,
+        "top_diagnoses": [
+            {"diagnosis": d["_id"] or "Unknown", "count": d["count"]}
+            for d in diagnosis_stats
+        ],
+        "monthly_trend": [
+            {"month": m["_id"], "count": m["count"], "amount": m["total_amount"]}
+            for m in monthly_stats
+        ],
     }
 
 

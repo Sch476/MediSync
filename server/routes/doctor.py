@@ -48,10 +48,10 @@ async def structure_transcript(
 
     for rx in structured.get("prescriptions", []):
         prescription = Prescription(
-            medication=rx.get("medication", ""),
-            dosage=rx.get("dosage", ""),
-            frequency=rx.get("frequency", ""),
-            duration=rx.get("duration", ""),
+            medication=rx.get("medication") or "",
+            dosage=rx.get("dosage") or "",
+            frequency=rx.get("frequency") or "",
+            duration=rx.get("duration") or "",
         )
 
         if policy_id:
@@ -189,6 +189,8 @@ async def list_patients(current_user: dict = Depends(doctor_role)):
     for p in patients:
         p["id"] = str(p["_id"])
         del p["_id"]
+        # Auto-attach policy_id so doctor never needs to type it manually
+        p["policy_id"] = f"patient_{p['id']}"
 
     return patients
 

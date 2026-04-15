@@ -79,30 +79,45 @@ async def _query_huggingface(prompt: str, max_retries: int) -> str:
     return _mock_llm_response(prompt)
 
 
+GEMINI_MODELS = [
+    "gemini-2.5-flash",
+    "gemini-2.0-flash-lite",
+    "gemini-2.0-flash",
+]
+
 async def _query_gemini(prompt: str, max_retries: int) -> str:
-    """Query Google Gemini API (free tier — 15 RPM)."""
-    try:
-        import google.generativeai as genai
-        genai.configure(api_key=settings.GEMINI_API_KEY)
-        model = genai.GenerativeModel("gemini-1.5-flash")
+    """Query Google Gemini API via REST — tries multiple models on rate limit."""
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {"temperature": 0.3, "maxOutputTokens": 4096},
+    }
 
-        for attempt in range(max_retries):
+    for model in GEMINI_MODELS:
+        url = (
+            "https://generativelanguage.googleapis.com/v1beta/models/"
+            f"{model}:generateContent?key={settings.GEMINI_API_KEY}"
+        )
+        for attempt in range(2):  # max 2 retries per model
             try:
-                response = model.generate_content(prompt)
-                return response.text.strip()
-            except Exception as e:
-                error_str = str(e)
-                if "429" in error_str or "quota" in error_str.lower():
-                    # Rate limited — exponential backoff
-                    await asyncio.sleep(2 ** attempt * 5)
-                    continue
-                print(f"Gemini API error: {e}")
-                break
+                response = requests.post(url, json=payload, timeout=60)
 
-    except ImportError:
-        print("google-generativeai not installed")
-    except Exception as e:
-        print(f"Gemini setup error: {e}")
+                if response.status_code == 200:
+                    data = response.json()
+                    return data["candidates"][0]["content"]["parts"][0]["text"].strip()
+
+                elif response.status_code == 429:
+                    wait = 3 * (attempt + 1)
+                    print(f"Gemini {model} rate limited — waiting {wait}s")
+                    await asyncio.sleep(wait)
+                    continue
+
+                else:
+                    print(f"Gemini {model} HTTP {response.status_code}: {response.text[:150]}")
+                    break  # try next model
+
+            except Exception as e:
+                print(f"Gemini {model} error: {e}")
+                break
 
     return _mock_llm_response(prompt)
 
@@ -110,6 +125,37 @@ async def _query_gemini(prompt: str, max_retries: int) -> str:
 def _mock_llm_response(prompt: str) -> str:
     """Mock LLM response for demo when no API keys are configured."""
     prompt_lower = prompt.lower()
+
+    if "therapeutically equivalent" in prompt_lower or ("coverage" in prompt_lower and "formulary" in prompt_lower):
+        # Coverage check mock — mark Sucralfate as excluded, suggest Pantoprazole
+        med = ""
+        for line in prompt.splitlines():
+            if line.strip().startswith('"') and "is covered" in prompt_lower:
+                med = line.strip().strip('"')
+                break
+        is_sucralfate = "sucralfate" in prompt_lower
+        is_multivitamin = "multivitamin" in prompt_lower or "neurobion" in prompt_lower
+        if is_sucralfate:
+            return json.dumps({
+                "is_covered": False,
+                "reason": "Sucralfate Suspension is explicitly excluded under Section 3.3 — classified as outpatient mucosal maintenance therapy.",
+                "alternative": "Pantoprazole 40mg",
+                "alt_reason": "Pantoprazole (PPI) provides equivalent gastric mucosal protection and is listed as covered in Section 3.2 of this policy."
+            })
+        elif is_multivitamin:
+            return json.dumps({
+                "is_covered": False,
+                "reason": "Multivitamins and nutraceuticals are excluded unless tied to a diagnosed deficiency.",
+                "alternative": None,
+                "alt_reason": None
+            })
+        else:
+            return json.dumps({
+                "is_covered": True,
+                "reason": "Medication appears in the covered formulary under Section 3.2.",
+                "alternative": None,
+                "alt_reason": None
+            })
 
     if "structure" in prompt_lower and ("clinical" in prompt_lower or "symptoms" in prompt_lower):
         return json.dumps({
@@ -143,15 +189,52 @@ def _mock_llm_response(prompt: str) -> str:
         return "Based on the provided information, the analysis has been completed. Please review the structured output for details."
 
 
+def _extract_json(text: str) -> Optional[dict]:
+    """Extract JSON from LLM response, handling markdown code blocks."""
+    # Strip ```json ... ``` wrapper — extract everything between the fences
+    code_block = re.search(r'```(?:json)?\s*([\s\S]*?)\s*```', text)
+    if code_block:
+        try:
+            return json.loads(code_block.group(1))
+        except json.JSONDecodeError:
+            pass
+
+    # Fallback: find the outermost { ... } in raw text (greedy)
+    brace_match = re.search(r'\{[\s\S]*\}', text)
+    if brace_match:
+        try:
+            return json.loads(brace_match.group())
+        except json.JSONDecodeError:
+            pass
+
+    return None
+
+
 async def structure_clinical_note(transcript: str) -> dict:
     """Use LLM to structure a doctor-patient conversation transcript into clinical note fields."""
-    prompt = f"""You are a medical AI assistant. Structure the following doctor-patient conversation transcript into a clinical note.
+    prompt = f"""You are a clinical AI assistant that extracts structured medical data from real doctor-patient conversation transcripts (which may include speech-to-text errors and informal language).
+
+EXTRACTION RULES:
+1. IGNORE all greetings, small talk, and non-medical conversation ("hello", "how are you", "okay", "please sit", "thank you", etc.)
+2. NORMALIZE drug names: speech-to-text often mishears drug names phonetically. Map them to the correct drug:
+   - "livo citrzine" / "levocetirizin" → Levocetirizine
+   - "hipamudge" / "hepamedge" → flag as [UNVERIFIED DRUG - verify spelling]
+   - Always correct obvious phonetic errors to proper drug names
+3. DISTINGUISH new prescriptions from stopped medications:
+   - "rather than X, take Y" → X is STOPPED, Y is new prescription
+   - "instead of X" / "stop taking X" → mark X as discontinued
+4. VALIDATE temperatures: "2 degrees centigrade" is physiologically impossible for a fever. If temperature seems wrong (below 35°C or stated ambiguously), flag it as: "Reported as [X] — likely [corrected value]. Verify with patient."
+5. EXTRACT recommended tests: "get it tested", "run a blood test" → add to a "recommended_tests" field
+6. FLAG clinical safety issues: e.g. if Paracetamol is prescribed alongside suspected liver disease/jaundice, add a safety warning
+
 Return ONLY valid JSON with these exact fields:
-- "symptoms": list of symptoms mentioned
-- "diagnosis": primary diagnosis
-- "prescriptions": list of objects with "medication", "dosage", "frequency", "duration"
+- "symptoms": list of symptoms (correct any obvious speech errors)
+- "diagnosis": primary diagnosis or "Suspected [X] — awaiting tests" if unconfirmed
+- "prescriptions": list of objects with "medication" (corrected name), "dosage", "frequency", "duration", "is_new" (true/false), "stopped" (true if being discontinued)
 - "icd_codes": relevant ICD-10 codes
-- "notes": any additional clinical notes
+- "recommended_tests": list of tests the doctor recommended
+- "safety_flags": list of any clinical safety concerns (drug interactions, contraindications)
+- "notes": follow-up instructions
 
 Transcript:
 {transcript}
@@ -160,16 +243,14 @@ Return ONLY the JSON, no other text."""
 
     response = await query_llm(prompt)
 
-    # Try to parse JSON from the response
-    try:
-        # Extract JSON from response (handle markdown code blocks)
-        json_match = re.search(r'\{[\s\S]*\}', response)
-        if json_match:
-            return json.loads(json_match.group())
-    except json.JSONDecodeError:
-        pass
+    parsed = _extract_json(response)
+    if parsed:
+        # Normalise symptoms — LLM sometimes returns a string instead of a list
+        if isinstance(parsed.get("symptoms"), str):
+            parsed["symptoms"] = [s.strip() for s in parsed["symptoms"].split(",") if s.strip()]
+        return parsed
 
-    # Return mock structure if parsing fails
+    print(f"[LLM] JSON parse failed. Length={len(response)}. Raw response: {response[:600]}")
     return {
         "symptoms": ["Unable to parse from transcript"],
         "diagnosis": "Requires manual review",
@@ -228,22 +309,30 @@ Write the simplified version:"""
 
 
 async def check_policy_coverage(medication: str, policy_context: str) -> dict:
-    """Check if a medication/procedure is covered under a patient's insurance policy using RAG context."""
-    prompt = f"""Based on the following insurance policy information, determine if "{medication}" is covered.
+    """Check if a medication is covered and, if not, find a covered equivalent from the same policy."""
+    prompt = f"""You are a clinical pharmacist reviewing an insurance policy to check drug coverage.
+
+TASK: Check if "{medication}" is covered under this insurance policy, and if it is NOT covered, find the closest therapeutically equivalent drug that IS listed as covered in this same policy.
+
+Rules for finding an equivalent:
+- Same active ingredient but different brand = equivalent
+- Same pharmacological class treating the same condition = equivalent (e.g. Sucralfate excluded but Pantoprazole covered for gastric ulcer = valid substitution)
+- Different class treating same condition only if the policy explicitly lists it = acceptable
+- Do NOT invent drugs that are not mentioned in the policy text
 
 Policy Information:
 {policy_context}
 
-Return ONLY valid JSON:
-{{"is_covered": true/false, "reason": "explanation", "alternative": "generic alternative if not covered or null"}}"""
+Return ONLY valid JSON, no explanation outside the JSON:
+{{
+  "is_covered": true or false,
+  "reason": "one sentence: why it is covered or why it is excluded, quoting the policy section",
+  "alternative": "exact drug name from policy if excluded and equivalent exists, otherwise null",
+  "alt_reason": "why this drug is therapeutically equivalent and where the policy covers it, or null"
+}}"""
 
     response = await query_llm(prompt)
-
-    try:
-        json_match = re.search(r'\{[\s\S]*\}', response)
-        if json_match:
-            return json.loads(json_match.group())
-    except json.JSONDecodeError:
-        pass
-
-    return {"is_covered": True, "reason": "Unable to verify — defaulting to covered", "alternative": None}
+    parsed = _extract_json(response)
+    if parsed:
+        return parsed
+    return {"is_covered": True, "reason": "Unable to verify — defaulting to covered", "alternative": None, "alt_reason": None}

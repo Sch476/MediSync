@@ -14,6 +14,7 @@ from models.health_check import HealthCheckCreate
 from services.ocr_service import extract_bill_items
 from services.llm_service import analyze_bill, simplify_discharge_summary
 from services.translation_service import translate_and_speak, get_supported_languages
+from services.rag_service import index_policy_pdf
 
 router = APIRouter()
 
@@ -271,3 +272,69 @@ def _explain_claim_status(claim: dict) -> str:
     }
 
     return explanations.get(status, "Status unknown. Please contact your insurer.")
+
+
+@router.post("/upload-policy")
+async def upload_my_policy(
+    file: UploadFile = File(...),
+    insurer_name: str = Form(...),
+    current_user: dict = Depends(patient_role),
+):
+    """Patient uploads their own insurance policy PDF.
+
+    Indexes it in ChromaDB and links the policy_id to the patient's profile.
+    Doctor never needs to upload — it's auto-fetched during consultation.
+    """
+    if file.content_type != "application/pdf":
+        raise HTTPException(status_code=400, detail="Only PDF files are accepted")
+
+    os.makedirs("uploads/policies", exist_ok=True)
+    file_path = f"uploads/policies/{current_user['id']}_{file.filename}"
+    with open(file_path, "wb") as f:
+        content = await file.read()
+        f.write(content)
+
+    # Use patient_id as the unique policy_id so doctor can auto-fetch it
+    policy_id = f"patient_{current_user['id']}"
+    result = await index_policy_pdf(file_path, policy_id, insurer_name)
+
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+
+    db = get_db()
+    # Save to policy_documents collection
+    await db.policy_documents.update_one(
+        {"policy_id": policy_id},
+        {"$set": {
+            "policy_id": policy_id,
+            "patient_id": current_user["id"],
+            "insurer_name": insurer_name,
+            "file_path": file_path,
+            "uploaded_at": datetime.utcnow(),
+            **result,
+        }},
+        upsert=True,
+    )
+    # Link policy_id to patient's user record
+    await db.users.update_one(
+        {"_id": ObjectId(current_user["id"])},
+        {"$set": {"policy_id": policy_id, "insurer_name": insurer_name}},
+    )
+
+    return {"message": "Policy uploaded successfully", "policy_id": policy_id, **result}
+
+
+@router.get("/my-policy")
+async def get_my_policy(current_user: dict = Depends(patient_role)):
+    """Get current patient's uploaded policy info."""
+    db = get_db()
+    policy_id = f"patient_{current_user['id']}"
+    doc = await db.policy_documents.find_one({"policy_id": policy_id})
+    if not doc:
+        return {"has_policy": False}
+    return {
+        "has_policy": True,
+        "insurer_name": doc.get("insurer_name"),
+        "uploaded_at": doc.get("uploaded_at"),
+        "policy_id": policy_id,
+    }

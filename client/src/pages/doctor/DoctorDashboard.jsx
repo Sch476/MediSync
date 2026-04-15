@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { FiFileText, FiAlertTriangle, FiActivity, FiMic, FiClipboard, FiUpload } from "react-icons/fi";
+import { FiFileText, FiAlertTriangle, FiMic, FiUpload } from "react-icons/fi";
 import toast from "react-hot-toast";
 import api from "../../utils/api";
 import { useAuth } from "../../context/AuthContext";
@@ -15,7 +15,7 @@ const card = {
 export default function DoctorDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [stats, setStats] = useState({ totalNotes: 0, pendingClaims: 0, patientAlerts: 0 });
+  const [stats, setStats] = useState({ totalNotes: 0, patientAlerts: 0 });
   const [recentNotes, setRecentNotes] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -33,13 +33,8 @@ export default function DoctorDashboard() {
       const notes = notesRes.data?.notes || notesRes.data || [];
       const alerts = alertsRes.data?.flagged || alertsRes.data || [];
 
-      const pendingClaims = notes.filter(
-        (n) => n.claim_status === "pending" || n.claim_status === "submitted"
-      ).length;
-
       setStats({
         totalNotes: notes.length,
-        pendingClaims,
         patientAlerts: alerts.length,
       });
 
@@ -53,7 +48,6 @@ export default function DoctorDashboard() {
 
   const statCards = [
     { label: "Total Notes", value: stats.totalNotes, icon: <FiFileText size={28} />, color: "#4ecdc4" },
-    { label: "Pending Claims", value: stats.pendingClaims, icon: <FiClipboard size={28} />, color: "#ffa502" },
     { label: "Patient Alerts", value: stats.patientAlerts, icon: <FiAlertTriangle size={28} />, color: "#ff6b6b" },
   ];
 

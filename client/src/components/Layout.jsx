@@ -6,16 +6,21 @@ import { useAuth } from "../context/AuthContext";
 import {
   FiHome, FiMic, FiFileText, FiUpload, FiClipboard,
   FiActivity, FiBarChart2, FiCheckCircle, FiUser, FiLogOut,
-  FiHeart, FiGlobe, FiAlertTriangle
+  FiHeart, FiGlobe, FiAlertTriangle, FiUsers
 } from "react-icons/fi";
 
 const navItems = {
   doctor: [
     { path: "/doctor", label: "Dashboard", icon: <FiHome /> },
     { path: "/doctor/consultation", label: "Smart Scribe", icon: <FiMic /> },
-    { path: "/doctor/notes", label: "Clinical Notes", icon: <FiFileText /> },
-    { path: "/doctor/upload-policy", label: "Upload Policy", icon: <FiUpload /> },
+    { path: "/doctor/clinical-notes", label: "Clinical Notes", icon: <FiFileText /> },
     { path: "/doctor/alerts", label: "Patient Alerts", icon: <FiAlertTriangle /> },
+  ],
+  hospital: [
+    { path: "/hospital",               label: "Dashboard",       icon: <FiHome /> },
+    { path: "/hospital/patients",      label: "Patient Records", icon: <FiUsers /> },
+    { path: "/hospital/submit-claim",  label: "Submit Claim",    icon: <FiClipboard /> },
+    { path: "/hospital/upload-policy", label: "Upload Policy",   icon: <FiUpload /> },
   ],
   insurer: [
     { path: "/insurer", label: "Dashboard", icon: <FiHome /> },
@@ -24,6 +29,7 @@ const navItems = {
   ],
   patient: [
     { path: "/patient", label: "Dashboard", icon: <FiHome /> },
+    { path: "/patient/upload-policy", label: "My Insurance Policy", icon: <FiUpload /> },
     { path: "/patient/bill-decoder", label: "Bill Decoder", icon: <FiFileText /> },
     { path: "/patient/discharge", label: "Discharge Summary", icon: <FiGlobe /> },
     { path: "/patient/health-check", label: "Health Check", icon: <FiHeart /> },

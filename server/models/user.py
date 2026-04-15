@@ -8,13 +8,15 @@ class UserCreate(BaseModel):
     email: EmailStr
     password: str = Field(..., min_length=6)
     full_name: str
-    role: Literal["doctor", "insurer", "patient"]
+    role: Literal["doctor", "insurer", "patient", "hospital"]
     # Doctor-specific
     license_number: Optional[str] = None
     specialization: Optional[str] = None
     # Patient-specific
     policy_number: Optional[str] = None
     insurer_name: Optional[str] = None
+    # Hospital-specific
+    hospital_name: Optional[str] = None
 
 
 class UserLogin(BaseModel):
@@ -31,6 +33,7 @@ class UserResponse(BaseModel):
     specialization: Optional[str] = None
     policy_number: Optional[str] = None
     insurer_name: Optional[str] = None
+    hospital_name: Optional[str] = None
     created_at: datetime
 
 
@@ -44,4 +47,5 @@ class UserInDB(BaseModel):
     specialization: Optional[str] = None
     policy_number: Optional[str] = None
     insurer_name: Optional[str] = None
+    hospital_name: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)

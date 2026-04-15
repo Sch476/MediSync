@@ -7,7 +7,7 @@ import os
 
 from config import settings
 from database import connect_db, close_db
-from routes import auth, doctor, insurer, patient
+from routes import auth, doctor, insurer, patient, hospital
 
 
 @asynccontextmanager
@@ -31,8 +31,8 @@ app = FastAPI(
 # CORS — allow React dev server
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS.split(","),
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -46,6 +46,7 @@ app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(doctor.router, prefix="/api/doctor", tags=["Doctor - Smart Scribe"])
 app.include_router(insurer.router, prefix="/api/insurer", tags=["Insurer - Clearinghouse"])
 app.include_router(patient.router, prefix="/api/patient", tags=["Patient - Care Companion"])
+app.include_router(hospital.router, prefix="/api/hospital", tags=["Hospital - Admin"])
 
 
 @app.get("/api/health")

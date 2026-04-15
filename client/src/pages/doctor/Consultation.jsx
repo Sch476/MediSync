@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from "react";
-import { FiMic, FiMicOff, FiCpu, FiSend, FiAlertCircle } from "react-icons/fi";
+import { FiMic, FiMicOff, FiCpu } from "react-icons/fi";
 import toast from "react-hot-toast";
 import api from "../../utils/api";
-import { useAuth } from "../../context/AuthContext";
 
 const card = {
   background: "#fff",
@@ -12,21 +11,14 @@ const card = {
 };
 
 export default function Consultation() {
-  const { user } = useAuth();
   const [patients, setPatients] = useState([]);
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [transcript, setTranscript] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [result, setResult] = useState(null);
-  const [showClaimForm, setShowClaimForm] = useState(false);
-  const [policyId, setPolicyId] = useState("");
-  const [claimForm, setClaimForm] = useState({
-    policy_number: "",
-    insurer_name: "",
-    room_type: "",
-  });
   const recognitionRef = useRef(null);
+  const finalTranscriptRef = useRef("");
 
   useEffect(() => {
     fetchPatients();
@@ -56,27 +48,24 @@ export default function Consultation() {
       return;
     }
 
+    finalTranscriptRef.current = "";
     const recognition = new SpeechRecognition();
     recognition.continuous = true;
     recognition.interimResults = true;
-    recognition.lang = "en-US";
+    recognition.lang = "en-IN";
 
     recognition.onresult = (event) => {
-      let finalTranscript = "";
       let interimTranscript = "";
-      for (let i = 0; i < event.results.length; i++) {
-        const result = event.results[i];
-        if (result.isFinal) {
-          finalTranscript += result[0].transcript + " ";
+      // Only process NEW results starting from event.resultIndex
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        if (event.results[i].isFinal) {
+          finalTranscriptRef.current += event.results[i][0].transcript + " ";
         } else {
-          interimTranscript += result[0].transcript;
+          interimTranscript += event.results[i][0].transcript;
         }
       }
-      setTranscript((prev) => {
-        const base = prev.replace(/\[listening\.\.\.\]$/, "").trimEnd();
-        const combined = base + (base ? " " : "") + finalTranscript;
-        return interimTranscript ? combined + interimTranscript : combined;
-      });
+      // Show finalized text + current interim at the end
+      setTranscript(finalTranscriptRef.current + interimTranscript);
     };
 
     recognition.onerror = (event) => {
@@ -118,15 +107,14 @@ export default function Consultation() {
       const formData = new FormData();
       formData.append("transcript", transcript);
       formData.append("patient_id", selectedPatient._id || selectedPatient.id);
-      formData.append("patient_name", selectedPatient.name);
-      if (policyId) formData.append("policy_id", policyId);
+      formData.append("patient_name", selectedPatient.full_name || selectedPatient.name);
 
       const res = await api.post("/doctor/structure-note", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
       setResult(res.data);
-      toast.success("Note structured successfully");
+      toast.success("Note saved — hospital will handle billing & insurance check");
     } catch (err) {
       toast.error(err.response?.data?.detail || "Failed to process transcript");
     } finally {
@@ -134,45 +122,12 @@ export default function Consultation() {
     }
   };
 
-  const submitClaim = async () => {
-    if (!claimForm.policy_number || !claimForm.insurer_name) {
-      toast.error("Please fill in required claim fields");
-      return;
-    }
-
-    try {
-      const structuredNote = result?.structured_note || result;
-      const prescriptions = structuredNote?.prescriptions || [];
-      const claimItems = prescriptions.map((p) => ({
-        name: p.drug || p.name || p.medication,
-        dosage: p.dosage || "",
-        duration: p.duration || "",
-        cost: p.cost || 0,
-      }));
-
-      const payload = {
-        ...claimForm,
-        patient_id: selectedPatient._id || selectedPatient.id,
-        patient_name: selectedPatient.name,
-        diagnosis: structuredNote?.diagnosis || "",
-        icd_codes: structuredNote?.icd_codes || [],
-        items: claimItems,
-        note_id: result?.note_id || result?._id,
-      };
-
-      await api.post("/doctor/submit-claim", payload);
-      toast.success("Claim submitted successfully");
-      setShowClaimForm(false);
-    } catch (err) {
-      toast.error(err.response?.data?.detail || "Failed to submit claim");
-    }
-  };
-
   const structuredNote = result?.structured_note || result || {};
   const symptoms = structuredNote?.symptoms || [];
   const prescriptions = structuredNote?.prescriptions || [];
   const icdCodes = structuredNote?.icd_codes || [];
-  const warnings = structuredNote?.policy_warnings || structuredNote?.warnings || [];
+  const recommendedTests = structuredNote?.recommended_tests || [];
+  const safetyFlags = structuredNote?.safety_flags || [];
 
   return (
     <div style={{ padding: 32, maxWidth: 1000, margin: "0 auto" }}>
@@ -209,20 +164,11 @@ export default function Consultation() {
               </option>
             ))}
           </select>
-          <input
-            type="text"
-            placeholder="Policy ID (optional)"
-            value={policyId}
-            onChange={(e) => setPolicyId(e.target.value)}
-            style={{
-              padding: "10px 12px",
-              border: "1px solid #ddd",
-              borderRadius: 8,
-              fontSize: 14,
-              width: 200,
-              color: "#333",
-            }}
-          />
+          {selectedPatient?.policy_id && (
+            <span style={{ fontSize: 13, color: "#4ecdc4", padding: "6px 12px", background: "#4ecdc418", borderRadius: 8 }}>
+              Policy auto-linked
+            </span>
+          )}
         </div>
       </div>
 
@@ -310,39 +256,6 @@ export default function Consultation() {
       {/* Results */}
       {result && (
         <>
-          {/* Policy Warnings */}
-          {warnings.length > 0 && (
-            <div style={{ marginBottom: 20 }}>
-              {warnings.map((w, i) => (
-                <div
-                  key={i}
-                  style={{
-                    display: "flex",
-                    alignItems: "flex-start",
-                    gap: 10,
-                    padding: 16,
-                    marginBottom: 8,
-                    borderRadius: 10,
-                    background: w.severity === "high" ? "#ff6b6b18" : "#ffa50218",
-                    border: `1px solid ${w.severity === "high" ? "#ff6b6b" : "#ffa502"}`,
-                  }}
-                >
-                  <FiAlertCircle
-                    size={20}
-                    style={{ color: w.severity === "high" ? "#ff6b6b" : "#ffa502", flexShrink: 0, marginTop: 2 }}
-                  />
-                  <div>
-                    <p style={{ margin: 0, fontWeight: 600, color: w.severity === "high" ? "#ff6b6b" : "#ffa502", fontSize: 14 }}>
-                      {w.title || "Policy Warning"}
-                    </p>
-                    <p style={{ margin: "4px 0 0", color: "#666", fontSize: 13 }}>
-                      {w.message || w.description || (typeof w === "string" ? w : JSON.stringify(w))}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
 
           {/* Structured Note */}
           <div style={{ ...card, marginBottom: 20 }}>
@@ -404,6 +317,32 @@ export default function Consultation() {
               </div>
             )}
 
+            {/* Safety Flags */}
+            {safetyFlags.length > 0 && (
+              <div style={{ marginBottom: 16 }}>
+                <p style={{ color: "#ff6b6b", fontSize: 13, marginBottom: 8, fontWeight: 600 }}>🚨 Safety Flags</p>
+                {safetyFlags.map((flag, i) => (
+                  <div key={i} style={{ padding: "10px 14px", background: "#ff6b6b18", border: "1px solid #ff6b6b", borderRadius: 8, marginBottom: 6, color: "#c0392b", fontSize: 13 }}>
+                    {typeof flag === "string" ? flag : flag.message || JSON.stringify(flag)}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Recommended Tests */}
+            {recommendedTests.length > 0 && (
+              <div style={{ marginBottom: 16 }}>
+                <p style={{ color: "#666", fontSize: 13, marginBottom: 8, fontWeight: 600 }}>Recommended Tests</p>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {recommendedTests.map((test, i) => (
+                    <span key={i} style={{ padding: "5px 14px", background: "#ffa50218", color: "#ffa502", borderRadius: 16, fontSize: 13, fontWeight: 500, border: "1px solid #ffa50260" }}>
+                      🧪 {typeof test === "string" ? test : test.name || JSON.stringify(test)}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Prescriptions Table */}
             {prescriptions.length > 0 && (
               <div>
@@ -432,129 +371,6 @@ export default function Consultation() {
             )}
           </div>
 
-          {/* Submit Claim */}
-          <div style={{ ...card, marginBottom: 20 }}>
-            {!showClaimForm ? (
-              <button
-                onClick={() => setShowClaimForm(true)}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  padding: "10px 24px",
-                  background: "#4ecdc4",
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: 8,
-                  fontSize: 14,
-                  fontWeight: 600,
-                  cursor: "pointer",
-                }}
-              >
-                <FiSend size={16} />
-                Submit Claim
-              </button>
-            ) : (
-              <div>
-                <h3 style={{ color: "#333", fontSize: 16, marginTop: 0, marginBottom: 16 }}>Claim Details</h3>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
-                  <div>
-                    <label style={{ display: "block", color: "#666", fontSize: 13, marginBottom: 4 }}>Policy Number *</label>
-                    <input
-                      type="text"
-                      value={claimForm.policy_number}
-                      onChange={(e) => setClaimForm({ ...claimForm, policy_number: e.target.value })}
-                      style={{
-                        width: "100%",
-                        padding: "10px 12px",
-                        border: "1px solid #ddd",
-                        borderRadius: 8,
-                        fontSize: 14,
-                        color: "#333",
-                        boxSizing: "border-box",
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: "block", color: "#666", fontSize: 13, marginBottom: 4 }}>Insurer Name *</label>
-                    <input
-                      type="text"
-                      value={claimForm.insurer_name}
-                      onChange={(e) => setClaimForm({ ...claimForm, insurer_name: e.target.value })}
-                      style={{
-                        width: "100%",
-                        padding: "10px 12px",
-                        border: "1px solid #ddd",
-                        borderRadius: 8,
-                        fontSize: 14,
-                        color: "#333",
-                        boxSizing: "border-box",
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: "block", color: "#666", fontSize: 13, marginBottom: 4 }}>Room Type</label>
-                    <select
-                      value={claimForm.room_type}
-                      onChange={(e) => setClaimForm({ ...claimForm, room_type: e.target.value })}
-                      style={{
-                        width: "100%",
-                        padding: "10px 12px",
-                        border: "1px solid #ddd",
-                        borderRadius: 8,
-                        fontSize: 14,
-                        color: "#333",
-                        background: "#fff",
-                        boxSizing: "border-box",
-                      }}
-                    >
-                      <option value="">-- Select --</option>
-                      <option value="general">General Ward</option>
-                      <option value="semi-private">Semi-Private</option>
-                      <option value="private">Private</option>
-                      <option value="icu">ICU</option>
-                    </select>
-                  </div>
-                </div>
-                <div style={{ display: "flex", gap: 12 }}>
-                  <button
-                    onClick={submitClaim}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      padding: "10px 24px",
-                      background: "#4ecdc4",
-                      color: "#fff",
-                      border: "none",
-                      borderRadius: 8,
-                      fontSize: 14,
-                      fontWeight: 600,
-                      cursor: "pointer",
-                    }}
-                  >
-                    <FiSend size={16} />
-                    Submit
-                  </button>
-                  <button
-                    onClick={() => setShowClaimForm(false)}
-                    style={{
-                      padding: "10px 24px",
-                      background: "#eee",
-                      color: "#666",
-                      border: "none",
-                      borderRadius: 8,
-                      fontSize: 14,
-                      fontWeight: 600,
-                      cursor: "pointer",
-                    }}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
         </>
       )}
     </div>

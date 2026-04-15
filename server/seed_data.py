@@ -34,7 +34,7 @@ async def seed():
     doctor = {
         "email": "doctor@demo.com",
         "hashed_password": hashed_pw,
-        "full_name": "Dr. Ananya Sharma",
+        "full_name": "Test Doctor",
         "role": "doctor",
         "license_number": "MCI-2019-78432",
         "specialization": "General Medicine",
@@ -46,7 +46,7 @@ async def seed():
     insurer = {
         "email": "insurer@demo.com",
         "hashed_password": hashed_pw,
-        "full_name": "Rajesh Kumar (Star Health TPA)",
+        "full_name": "Test Insurance",
         "role": "insurer",
         "license_number": None,
         "specialization": None,
@@ -58,7 +58,7 @@ async def seed():
     patient1 = {
         "email": "patient@demo.com",
         "hashed_password": hashed_pw,
-        "full_name": "Priya Patel",
+        "full_name": "P1",
         "role": "patient",
         "license_number": None,
         "specialization": None,
@@ -70,7 +70,7 @@ async def seed():
     patient2 = {
         "email": "patient2@demo.com",
         "hashed_password": hashed_pw,
-        "full_name": "Amit Verma",
+        "full_name": "P2",
         "role": "patient",
         "license_number": None,
         "specialization": None,
@@ -91,9 +91,9 @@ async def seed():
     notes = [
         {
             "doctor_id": doctor_id,
-            "doctor_name": "Dr. Ananya Sharma",
+            "doctor_name": "Test Doctor",
             "patient_id": patient1_id,
-            "patient_name": "Priya Patel",
+            "patient_name": "P1",
             "raw_transcript": "Patient complains of fever for 3 days, cough with yellowish sputum, and body aches. Temperature 101F. Chest clear on auscultation. Prescribing Paracetamol 500mg TDS for 5 days and Azithromycin 500mg OD for 3 days.",
             "symptoms": ["fever", "cough with yellowish sputum", "body aches"],
             "diagnosis": "Acute Upper Respiratory Infection",
@@ -110,9 +110,9 @@ async def seed():
         },
         {
             "doctor_id": doctor_id,
-            "doctor_name": "Dr. Ananya Sharma",
+            "doctor_name": "Test Doctor",
             "patient_id": patient2_id,
-            "patient_name": "Amit Verma",
+            "patient_name": "P2",
             "raw_transcript": "Patient presents with severe epigastric pain for 1 week, worse after meals. History of alcohol use. Tenderness in epigastric region. Suspecting gastritis. Prescribing Pantoprazole 40mg and Domperidone 10mg. Ordering endoscopy.",
             "symptoms": ["severe epigastric pain", "pain worse after meals"],
             "diagnosis": "Chronic Gastritis",
@@ -137,9 +137,9 @@ async def seed():
     claims = [
         {
             "doctor_id": doctor_id,
-            "doctor_name": "Dr. Ananya Sharma",
+            "doctor_name": "Test Doctor",
             "patient_id": patient1_id,
-            "patient_name": "Priya Patel",
+            "patient_name": "P1",
             "policy_number": "STD-78901",
             "insurer_name": "Star Health Insurance",
             "clinical_note_id": note_ids[0],
@@ -164,9 +164,9 @@ async def seed():
         },
         {
             "doctor_id": doctor_id,
-            "doctor_name": "Dr. Ananya Sharma",
+            "doctor_name": "Test Doctor",
             "patient_id": patient2_id,
-            "patient_name": "Amit Verma",
+            "patient_name": "P2",
             "policy_number": "PREM-45678",
             "insurer_name": "HDFC Ergo",
             "clinical_note_id": note_ids[1],
@@ -191,9 +191,9 @@ async def seed():
         },
         {
             "doctor_id": doctor_id,
-            "doctor_name": "Dr. Ananya Sharma",
+            "doctor_name": "Test Doctor",
             "patient_id": patient1_id,
-            "patient_name": "Priya Patel",
+            "patient_name": "P1",
             "policy_number": "STD-78901",
             "insurer_name": "Star Health Insurance",
             "clinical_note_id": note_ids[0],
@@ -222,7 +222,7 @@ async def seed():
     health_checks = [
         {
             "patient_id": patient1_id,
-            "patient_name": "Priya Patel",
+            "patient_name": "P1",
             "doctor_id": doctor_id,
             "wound_condition": "normal",
             "fever": False,
@@ -239,7 +239,7 @@ async def seed():
         },
         {
             "patient_id": patient1_id,
-            "patient_name": "Priya Patel",
+            "patient_name": "P1",
             "doctor_id": doctor_id,
             "wound_condition": "red",
             "fever": True,

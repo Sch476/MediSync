@@ -77,8 +77,8 @@ export default function Analytics() {
   const PIE_COLORS = [STATUS_COLORS.pending, STATUS_COLORS.approved, STATUS_COLORS.rejected, STATUS_COLORS.flagged];
 
   const diagnosisData = (data.top_diagnoses || []).map((d) => ({
-    name: d.diagnosis || d.name,
-    count: d.count || d.claim_count,
+    name: d.diagnosis,
+    count: d.count,
   }));
 
   const trendData = (data.monthly_trend || []).map((m) => ({
@@ -91,7 +91,7 @@ export default function Analytics() {
     { label: "Total Claims", value: data.total_claims ?? 0, icon: <FiFileText size={24} />, color: "#4ecdc4" },
     {
       label: "Total Amount",
-      value: "$" + Number(data.total_amount ?? 0).toLocaleString("en-US", { minimumFractionDigits: 2 }),
+      value: "₹" + Number(data.total_amount ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2 }),
       icon: <FiDollarSign size={24} />,
       color: "#ffa502",
     },
