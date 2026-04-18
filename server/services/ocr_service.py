@@ -54,7 +54,7 @@ def _parse_bill_text(text: str) -> List[dict]:
         # e.g., "Room Charges (3 days) ... Rs. 15,000"
         amount_patterns = [
             r'(.+?)\s+(?:Rs\.?\s*)?(\d[\d,]*\.?\d*)\s*$',
-            r'(.+?)\s+(?:₹\s*)?(\d[\d,]*\.?\d*)\s*$',
+            r'(.+?)\s+(?:(?:Rs\.?|₹)\s*)?(\d[\d,]*\.?\d*)\s*$',
             r'(.+?)\s{2,}(\d[\d,]*\.?\d*)',
         ]
 

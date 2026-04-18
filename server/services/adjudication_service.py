@@ -93,18 +93,18 @@ def adjudicate_claim(claim: dict) -> dict:
     # Rule 1: Check claim amount against policy limit
     max_amount = ADJUDICATION_RULES["max_claim_amount"].get(policy_tier, 500000)
     if approved_amount > max_amount:
-        flags.append(f"Claim amount ₹{approved_amount} exceeds policy limit ₹{max_amount}")
+        flags.append(f"Claim amount Rs {approved_amount} exceeds policy limit Rs {max_amount}")
         approved_amount = max_amount
 
     # Rule 2: Room rent cap check
-    room_type = claim.get("room_type", "").lower()
+    room_type = (claim.get("room_type") or "").lower()
     if room_type in ("private", "deluxe", "suite"):
         cap = ADJUDICATION_RULES["room_rent_caps"].get(policy_tier, 4000)
         for item in claim.get("items", []):
             if item.get("category") == "room":
                 if item["amount"] > cap:
                     excess = item["amount"] - cap
-                    flags.append(f"Room rent ₹{item['amount']}/day exceeds cap ₹{cap}/day. Excess: ₹{excess}")
+                    flags.append(f"Room rent Rs {item['amount']}/day exceeds cap Rs {cap}/day. Excess: Rs {excess}")
                     approved_amount -= excess
 
     # Rule 3: Check for excluded items

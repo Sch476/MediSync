@@ -81,12 +81,14 @@ async def _query_huggingface(prompt: str, max_retries: int) -> str:
 
 GEMINI_MODELS = [
     "gemini-2.5-flash",
+    "gemini-2.5-flash-lite",
     "gemini-2.0-flash-lite",
+    "gemini-2.0-flash-001",
     "gemini-2.0-flash",
 ]
 
 async def _query_gemini(prompt: str, max_retries: int) -> str:
-    """Query Google Gemini API via REST — tries multiple models on rate limit."""
+    """Query Google Gemini API via REST — tries multiple models on rate limit or overload."""
     payload = {
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {"temperature": 0.3, "maxOutputTokens": 4096},
@@ -97,19 +99,32 @@ async def _query_gemini(prompt: str, max_retries: int) -> str:
             "https://generativelanguage.googleapis.com/v1beta/models/"
             f"{model}:generateContent?key={settings.GEMINI_API_KEY}"
         )
-        for attempt in range(2):  # max 2 retries per model
+        for attempt in range(3):  # 3 retries per model
             try:
                 response = requests.post(url, json=payload, timeout=60)
 
                 if response.status_code == 200:
                     data = response.json()
-                    return data["candidates"][0]["content"]["parts"][0]["text"].strip()
+                    # Guard against empty response (no parts — e.g. safety block)
+                    parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
+                    if parts and parts[0].get("text"):
+                        return parts[0]["text"].strip()
+                    # Empty response — try next model
+                    print(f"Gemini {model} returned empty content, trying next model")
+                    break
 
-                elif response.status_code == 429:
-                    wait = 3 * (attempt + 1)
-                    print(f"Gemini {model} rate limited — waiting {wait}s")
+                elif response.status_code in (429, 503):
+                    # 429 = rate limited, 503 = model overloaded — use longer backoff
+                    # Free tier resets ~60s; wait 20s/40s/65s to spread across the window
+                    wait = [20, 40, 65][attempt]
+                    label = "rate limited" if response.status_code == 429 else "overloaded"
+                    print(f"Gemini {model} {label} — waiting {wait}s (attempt {attempt+1}/3)")
                     await asyncio.sleep(wait)
                     continue
+
+                elif response.status_code == 404:
+                    print(f"Gemini {model} not available — skipping")
+                    break  # skip to next model, don't retry
 
                 else:
                     print(f"Gemini {model} HTTP {response.status_code}: {response.text[:150]}")
@@ -174,12 +189,12 @@ def _mock_llm_response(prompt: str) -> str:
             "line_items": [
                 {"item": "Consultation Fee", "amount": 500, "covered": True, "explanation": "Standard consultation — covered under OPD benefit"},
                 {"item": "Blood Test - CBC", "amount": 300, "covered": True, "explanation": "Diagnostic test — covered"},
-                {"item": "Room Charges (Deluxe)", "amount": 8000, "covered": False, "explanation": "Exceeds room rent cap of ₹5000/day. You pay ₹3000 extra"},
+                {"item": "Room Charges (Deluxe)", "amount": 8000, "covered": False, "explanation": "Exceeds room rent cap of Rs 5000/day. You pay Rs 3000 extra"},
             ],
             "total": 8800,
             "covered_total": 5800,
             "out_of_pocket": 3000,
-            "summary": "Most charges are covered. Room upgrade costs ₹3000 extra above your policy's room rent cap."
+            "summary": "Most charges are covered. Room upgrade costs Rs 3000 extra above your policy's room rent cap."
         })
 
     elif "simplif" in prompt_lower or "explain" in prompt_lower:

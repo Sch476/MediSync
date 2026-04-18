@@ -121,7 +121,7 @@ export default function SubmitClaim() {
       <div style={{ ...card, padding: 48 }}>
         <FiCheckCircle size={56} color="#4ecdc4" style={{ marginBottom: 16 }} />
         <h2 style={{ color: "#333", margin: "0 0 8px" }}>Claim Submitted!</h2>
-        <p style={{ color: "#666", marginBottom: 8 }}>Total amount: <strong>₹{result.total_amount?.toFixed(2)}</strong></p>
+        <p style={{ color: "#666", marginBottom: 8 }}>Total amount: <strong>Rs {result.total_amount?.toFixed(2)}</strong></p>
         <p style={{ color: "#aaa", fontSize: 13, marginBottom: 24 }}>Claim ID: {result.claim_id}</p>
         <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
           <button onClick={() => navigate("/hospital/patients")}
@@ -190,10 +190,10 @@ export default function SubmitClaim() {
           <div>
             <label style={{ display: "block", color: "#666", fontSize: 13, marginBottom: 6, fontWeight: 600 }}>Room Type</label>
             <select value={roomType} onChange={(e) => setRoomType(e.target.value)} style={{ ...input, background: "#fff" }}>
-              <option value="general">General Ward — ₹1,500/day</option>
-              <option value="semi-private">Semi-Private — ₹3,000/day</option>
-              <option value="private">Private — ₹6,000/day</option>
-              <option value="icu">ICU — ₹12,000/day</option>
+              <option value="general">General Ward — Rs 1,500/day</option>
+              <option value="semi-private">Semi-Private — Rs 3,000/day</option>
+              <option value="private">Private — Rs 6,000/day</option>
+              <option value="icu">ICU — Rs 12,000/day</option>
             </select>
           </div>
           <div>
@@ -213,7 +213,7 @@ export default function SubmitClaim() {
           {extraCharges.map((e, i) => (
             <div key={i} style={{ display: "flex", gap: 8, marginBottom: 8 }}>
               <input placeholder="Description (e.g. Biomedical waste fee)" value={e.description} onChange={(ev) => updateExtra(i, "description", ev.target.value)} style={{ ...input, flex: 2 }} />
-              <input type="number" placeholder="₹" value={e.amount || ""} onChange={(ev) => updateExtra(i, "amount", ev.target.value)} style={{ ...input, width: 100, flex: "none" }} />
+              <input type="number" placeholder="Rs" value={e.amount || ""} onChange={(ev) => updateExtra(i, "amount", ev.target.value)} style={{ ...input, width: 100, flex: "none" }} />
               <button onClick={() => removeExtra(i)} style={{ padding: "0 10px", background: "#ff6b6b18", color: "#ff6b6b", border: "1px solid #ff6b6b40", borderRadius: 6, cursor: "pointer" }}>
                 <FiTrash2 size={14} />
               </button>
@@ -233,12 +233,12 @@ export default function SubmitClaim() {
         ].map(([label, amt], i) => (
           <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #f0f0f0", fontSize: 14, color: "#2d3436" }}>
             <span>{label}</span>
-            <span>₹{Number(amt).toLocaleString()}</span>
+            <span>Rs {Number(amt).toLocaleString()}</span>
           </div>
         ))}
         <div style={{ display: "flex", justifyContent: "space-between", padding: "12px 0 0", fontSize: 16, fontWeight: 700, color: "#2d3436" }}>
           <span>Total</span>
-          <span>₹{total.toLocaleString()}</span>
+          <span>Rs {total.toLocaleString()}</span>
         </div>
       </div>
 

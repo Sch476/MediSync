@@ -264,11 +264,11 @@ def _explain_claim_status(claim: dict) -> str:
     approved = claim.get("approved_amount")
 
     explanations = {
-        "pending": f"Your claim for ₹{amount:,.0f} is being reviewed. This usually takes 1-2 business days.",
-        "approved": f"Great news! Your claim has been approved for ₹{approved or amount:,.0f}."
-                    + (f" (Original claim: ₹{amount:,.0f})" if approved and approved < amount else ""),
-        "rejected": f"Your claim for ₹{amount:,.0f} was not approved. Reason: {claim.get('rejection_reason', 'Contact your insurer for details')}.",
-        "flagged": f"Your claim for ₹{amount:,.0f} needs additional review. Reason: {claim.get('adjudication_notes', 'Under manual review')}.",
+        "pending": f"Your claim for Rs {amount:,.0f} is being reviewed. This usually takes 1-2 business days.",
+        "approved": f"Great news! Your claim has been approved for Rs {approved or amount:,.0f}."
+                    + (f" (Original claim: Rs {amount:,.0f})" if approved and approved < amount else ""),
+        "rejected": f"Your claim for Rs {amount:,.0f} was not approved. Reason: {claim.get('rejection_reason', 'Contact your insurer for details')}.",
+        "flagged": f"Your claim for Rs {amount:,.0f} needs additional review. Reason: {claim.get('adjudication_notes', 'Under manual review')}.",
     }
 
     return explanations.get(status, "Status unknown. Please contact your insurer.")
