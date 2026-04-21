@@ -232,30 +232,110 @@ async def check_medication_coverage(
     if not prescriptions:
         return {"policy_id": policy_id, "insurer_name": insurer_name, "results": []}
 
-    # Check each medication against the policy via RAG + LLM
+    # Build list of medication names
+    med_names = [rx.get("medication") or rx.get("drug") or rx.get("name", "Unknown") for rx in prescriptions]
+
+    # ONE RAG query for all meds at once
+    policy_context = await query_policy(
+        policy_id,
+        f"drug formulary covered medications excluded medications Section 3.2 Section 3.3 {' '.join(med_names)}"
+    )
+
+    if not policy_context:
+        raise HTTPException(status_code=400, detail="Policy exists but could not be read. Please re-upload the policy PDF.")
+
+    # ONE LLM call checking ALL medications at once
+    from services.llm_service import query_llm, _extract_json
+    import json
+
+    meds_list = "\n".join(f"  {i+1}. {name}" for i, name in enumerate(med_names))
+    prompt = f"""You are a clinical pharmacist checking drug coverage against an insurance policy.
+
+CHECK EACH of these medications against the policy below and return coverage status for ALL of them:
+{meds_list}
+
+STRICT RULES:
+- ONLY use information from the policy text. Do NOT assume or guess.
+- If a drug is explicitly listed in the covered formulary → is_covered: true, quote the section.
+- If a drug is explicitly excluded → is_covered: false, quote the exclusion reason.
+- If a drug is NOT mentioned at all → is_covered: false, reason: "Not found in policy formulary."
+- For EVERY excluded/not-found drug, you MUST suggest an alternative from the policy's covered list (Section 3.2):
+  - Same pharmacological class = best match (e.g. Telmisartan excluded → Losartan is a covered ARB)
+  - Same therapeutic purpose = acceptable (e.g. treats same condition)
+  - If genuinely no equivalent exists in Section 3.2, set alternative to null
+  - NEVER invent drugs not listed in the policy
+
+Policy Text:
+{policy_context}
+
+Return ONLY a JSON array (one object per medication, same order as the list above):
+[
+  {{
+    "medication": "exact drug name",
+    "is_covered": true or false,
+    "reason": "one sentence quoting the policy section",
+    "alternative": "covered drug name from policy if excluded, otherwise null",
+    "alt_reason": "why this is a valid substitute, or null"
+  }}
+]"""
+
+    response = await query_llm(prompt)
+    print(f"[Coverage] Raw LLM response ({len(response)} chars): {response[:500]}")
+
+    # Parse response — handle array, single object, or code block wrapping
+    import re
+    parsed = None
+    try:
+        # Strip markdown code fences if present
+        code_block = re.search(r'```(?:json)?\s*([\s\S]*?)\s*```', response)
+        raw = code_block.group(1).strip() if code_block else response.strip()
+
+        # Try 1: JSON array [...]
+        bracket = re.search(r'\[[\s\S]*\]', raw)
+        if bracket:
+            parsed = json.loads(bracket.group())
+
+        # Try 2: single JSON object {...} — wrap in array
+        if not parsed:
+            brace = re.search(r'\{[\s\S]*\}', raw)
+            if brace:
+                single = json.loads(brace.group())
+                parsed = [single]
+    except (json.JSONDecodeError, AttributeError) as e:
+        print(f"[Coverage] JSON parse error: {e}")
+
+    # If parsed is a single result but we need N, apply it to all meds
+    if parsed and len(parsed) == 1 and len(med_names) > 1:
+        single = parsed[0]
+        parsed = [single] * len(med_names)
+
+    # Build results — match parsed array back to prescriptions
     results = []
-    for rx in prescriptions:
-        med_name = rx.get("medication") or rx.get("drug") or rx.get("name", "Unknown")
-
-        # RAG: fetch relevant policy sections for this drug
-        policy_context = await query_policy(
-            policy_id,
-            f"coverage for {med_name} drug formulary excluded medications covered medicines"
-        )
-
-        # LLM: interpret coverage + suggest alternative if excluded
-        coverage = await check_policy_coverage(med_name, policy_context)
-
-        results.append({
-            "medication": med_name,
-            "dosage": rx.get("dosage", ""),
-            "frequency": rx.get("frequency", ""),
-            "duration": rx.get("duration", ""),
-            "is_covered": coverage.get("is_covered", False),
-            "reason": coverage.get("reason", ""),
-            "alternative": coverage.get("alternative"),
-            "alt_reason": coverage.get("alt_reason"),
-        })
+    for i, rx in enumerate(prescriptions):
+        med_name = med_names[i]
+        if parsed and i < len(parsed):
+            cov = parsed[i]
+            results.append({
+                "medication": med_name,
+                "dosage": rx.get("dosage", ""),
+                "frequency": rx.get("frequency", ""),
+                "duration": rx.get("duration", ""),
+                "is_covered": cov.get("is_covered", False),
+                "reason": cov.get("reason", ""),
+                "alternative": cov.get("alternative"),
+                "alt_reason": cov.get("alt_reason"),
+            })
+        else:
+            results.append({
+                "medication": med_name,
+                "dosage": rx.get("dosage", ""),
+                "frequency": rx.get("frequency", ""),
+                "duration": rx.get("duration", ""),
+                "is_covered": False,
+                "reason": "Unable to verify — LLM response parsing failed.",
+                "alternative": None,
+                "alt_reason": None,
+            })
 
     return {
         "policy_id": policy_id,

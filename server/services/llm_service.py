@@ -99,7 +99,7 @@ async def _query_gemini(prompt: str, max_retries: int) -> str:
             "https://generativelanguage.googleapis.com/v1beta/models/"
             f"{model}:generateContent?key={settings.GEMINI_API_KEY}"
         )
-        for attempt in range(3):  # 3 retries per model
+        for attempt in range(2):  # 2 retries per model, then move on
             try:
                 response = requests.post(url, json=payload, timeout=60)
 
@@ -114,9 +114,8 @@ async def _query_gemini(prompt: str, max_retries: int) -> str:
                     break
 
                 elif response.status_code in (429, 503):
-                    # 429 = rate limited, 503 = model overloaded — use longer backoff
-                    # Free tier resets ~60s; wait 20s/40s/65s to spread across the window
-                    wait = [20, 40, 65][attempt]
+                    # Short backoff — move to next model fast
+                    wait = [3, 6, 10][attempt]
                     label = "rate limited" if response.status_code == 429 else "overloaded"
                     print(f"Gemini {model} {label} — waiting {wait}s (attempt {attempt+1}/3)")
                     await asyncio.sleep(wait)
@@ -142,25 +141,36 @@ def _mock_llm_response(prompt: str) -> str:
     prompt_lower = prompt.lower()
 
     if "therapeutically equivalent" in prompt_lower or ("coverage" in prompt_lower and "formulary" in prompt_lower):
-        # Coverage check mock — mark Sucralfate as excluded, suggest Pantoprazole
-        med = ""
-        for line in prompt.splitlines():
-            if line.strip().startswith('"') and "is covered" in prompt_lower:
-                med = line.strip().strip('"')
-                break
+        # Coverage check mock — handles both single and batch (array) format
+        # Check if this is a batch request (numbered list like "1. Telmisartan\n2. Amlodipine")
+        numbered = re.findall(r'\d+\.\s+(\S+)', prompt)
+        if len(numbered) > 1:
+            # Batch mock — return array, one per medication
+            results = []
+            for med in numbered:
+                med_l = med.lower()
+                if "sucralfate" in med_l:
+                    results.append({"medication": med, "is_covered": False, "reason": "Excluded under Section 3.3", "alternative": "Pantoprazole 40mg", "alt_reason": "PPI covered under Section 3.2"})
+                elif "multivitamin" in med_l or "neurobion" in med_l:
+                    results.append({"medication": med, "is_covered": False, "reason": "Nutraceuticals excluded", "alternative": None, "alt_reason": None})
+                else:
+                    results.append({"medication": med, "is_covered": True, "reason": "Listed in covered formulary under Section 3.2.", "alternative": None, "alt_reason": None})
+            return json.dumps(results)
+
+        # Single medication check
         is_sucralfate = "sucralfate" in prompt_lower
         is_multivitamin = "multivitamin" in prompt_lower or "neurobion" in prompt_lower
         if is_sucralfate:
             return json.dumps({
                 "is_covered": False,
-                "reason": "Sucralfate Suspension is explicitly excluded under Section 3.3 — classified as outpatient mucosal maintenance therapy.",
+                "reason": "Sucralfate Suspension is explicitly excluded under Section 3.3.",
                 "alternative": "Pantoprazole 40mg",
-                "alt_reason": "Pantoprazole (PPI) provides equivalent gastric mucosal protection and is listed as covered in Section 3.2 of this policy."
+                "alt_reason": "Pantoprazole (PPI) provides equivalent gastric mucosal protection and is listed as covered in Section 3.2."
             })
         elif is_multivitamin:
             return json.dumps({
                 "is_covered": False,
-                "reason": "Multivitamins and nutraceuticals are excluded unless tied to a diagnosed deficiency.",
+                "reason": "Multivitamins and nutraceuticals are excluded.",
                 "alternative": None,
                 "alt_reason": None
             })
@@ -230,25 +240,38 @@ async def structure_clinical_note(transcript: str) -> dict:
     prompt = f"""You are a clinical AI assistant that extracts structured medical data from real doctor-patient conversation transcripts (which may include speech-to-text errors and informal language).
 
 EXTRACTION RULES:
-1. IGNORE all greetings, small talk, and non-medical conversation ("hello", "how are you", "okay", "please sit", "thank you", etc.)
+1. IGNORE all greetings, small talk, and non-medical conversation.
 2. NORMALIZE drug names: speech-to-text often mishears drug names phonetically. Map them to the correct drug:
    - "livo citrzine" / "levocetirizin" → Levocetirizine
    - "hipamudge" / "hepamedge" → flag as [UNVERIFIED DRUG - verify spelling]
-   - Always correct obvious phonetic errors to proper drug names
 3. DISTINGUISH new prescriptions from stopped medications:
-   - "rather than X, take Y" → X is STOPPED, Y is new prescription
-   - "instead of X" / "stop taking X" → mark X as discontinued
-4. VALIDATE temperatures: "2 degrees centigrade" is physiologically impossible for a fever. If temperature seems wrong (below 35°C or stated ambiguously), flag it as: "Reported as [X] — likely [corrected value]. Verify with patient."
-5. EXTRACT recommended tests: "get it tested", "run a blood test" → add to a "recommended_tests" field
-6. FLAG clinical safety issues: e.g. if Paracetamol is prescribed alongside suspected liver disease/jaundice, add a safety warning
+   - "stop X" / "discontinue X" / "rather than X, take Y" → X gets stopped: true
+   - "currently on X" / "already taking X" → is_new: false
+   - "I am adding X" / "starting X" / "prescribing X" → is_new: true
+   - If a drug is being dose-changed, list BOTH the old (stopped: true) and new (is_new: true)
+4. VALIDATE temperatures: physiologically impossible values should be flagged.
+5. DIAGNOSIS must be the PRIMARY condition, not a rule-out. If the doctor says "to rule out osteomyelitis", the diagnosis is the infection itself, NOT osteomyelitis.
+6. RECOMMENDED TESTS — this is CRITICAL, never skip:
+   - ANY mention of: "test", "monitor", "check", "X-ray", "scan", "culture", "lab", "blood work", "repeat HbA1c", "daily CBC" → extract into recommended_tests
+   - Include monitoring instructions like "blood sugar 4 times daily"
+7. SAFETY FLAGS — this is CRITICAL, never skip:
+   - ANY mention of "avoid", "do not give", "don't use", "contraindicated", "risk of" → extract into safety_flags
+   - Also add your own clinical knowledge: e.g. Metformin + renal risk, insulin + hypoglycemia, aspirin + dengue bleeding
+   - This field must NEVER be empty if drugs are prescribed — at minimum flag drug interactions
 
-Return ONLY valid JSON with these exact fields:
+Return ONLY valid JSON with these exact fields. EVERY field is mandatory — never return an empty array for recommended_tests or safety_flags if the transcript mentions tests or drug warnings:
 - "symptoms": list of symptoms (correct any obvious speech errors)
-- "diagnosis": primary diagnosis or "Suspected [X] — awaiting tests" if unconfirmed
-- "prescriptions": list of objects with "medication" (corrected name), "dosage", "frequency", "duration", "is_new" (true/false), "stopped" (true if being discontinued)
-- "icd_codes": relevant ICD-10 codes
-- "recommended_tests": list of tests the doctor recommended
-- "safety_flags": list of any clinical safety concerns (drug interactions, contraindications)
+- "diagnosis": the PRIMARY diagnosis (what the patient HAS), not what is being ruled out
+- "prescriptions": list of objects, each MUST have ALL of these keys:
+    - "medication": corrected drug name (string)
+    - "dosage": strength/amount e.g. "650mg", "10ml", "1 tablet" (string, never null)
+    - "frequency": how often e.g. "every 6 hours", "3 times daily", "once before breakfast" (string, never null)
+    - "duration": how long e.g. "5 days", "14 days", "until follow-up" (string, never null)
+    - "is_new": true if newly prescribed, false if patient was already on it
+    - "stopped": true if being discontinued, false otherwise
+- "icd_codes": relevant ICD-10 codes — include codes for ALL conditions mentioned (list of strings)
+- "recommended_tests": list of ALL tests/monitoring the doctor mentioned (NEVER empty if transcript mentions any test)
+- "safety_flags": list of ALL safety concerns — drugs to avoid, interactions, monitoring warnings (NEVER empty if drugs are prescribed)
 - "notes": follow-up instructions
 
 Transcript:
@@ -263,6 +286,8 @@ Return ONLY the JSON, no other text."""
         # Normalise symptoms — LLM sometimes returns a string instead of a list
         if isinstance(parsed.get("symptoms"), str):
             parsed["symptoms"] = [s.strip() for s in parsed["symptoms"].split(",") if s.strip()]
+        # Post-process: fill in what Gemini often skips
+        parsed = _post_process_structured_note(parsed, transcript)
         return parsed
 
     print(f"[LLM] JSON parse failed. Length={len(response)}. Raw response: {response[:600]}")
@@ -273,6 +298,119 @@ Return ONLY the JSON, no other text."""
         "icd_codes": [],
         "notes": f"Auto-structuring failed. Raw transcript: {transcript[:200]}"
     }
+
+
+def _post_process_structured_note(parsed: dict, transcript: str) -> dict:
+    """Rule-based post-processing to catch what Gemini skips."""
+    t = transcript.lower()
+
+    # ── Stopped medications ──
+    # Detect "stop X", "discontinue X", "rather than X" patterns
+    stop_patterns = [
+        r'stop\s+(\w[\w\s\-]*?)(?:\s+(?:immediately|as|because|since|due)|\.|,)',
+        r'discontinue\s+(\w[\w\s\-]*?)(?:\s+|\.|,)',
+        r'stop\s+taking\s+(\w[\w\s\-]*?)(?:\s+|\.|,)',
+    ]
+    stopped_names = set()
+    for pattern in stop_patterns:
+        for match in re.finditer(pattern, t):
+            stopped_names.add(match.group(1).strip())
+
+    # Detect "currently on X", "already taking X" → existing meds (is_new = false)
+    # Capture the full clause after "currently on" to handle "X and Y" lists
+    existing_clause_patterns = [
+        r'currently\s+on\s+([\w\s\-,]+?)(?:\.\s|she\s|he\s|i\s+am\s|stop)',
+        r'already\s+(?:on|taking)\s+([\w\s\-,]+?)(?:\.\s|she\s|he\s|stop)',
+    ]
+    existing_names = set()
+    for pattern in existing_clause_patterns:
+        for match in re.finditer(pattern, t):
+            clause = match.group(1)
+            # Split by "and" to get individual meds
+            for part in re.split(r'\s+and\s+', clause):
+                # Extract just the drug name (first word before dose)
+                drug = re.match(r'(\w[\w\-]*)', part.strip())
+                if drug:
+                    existing_names.add(drug.group(1).strip())
+
+    # Apply stopped/is_new flags to prescriptions
+    for rx in parsed.get("prescriptions", []):
+        med = (rx.get("medication") or "").lower()
+        # Mark stopped
+        if not rx.get("stopped"):
+            for name in stopped_names:
+                if name in med or med in name:
+                    rx["stopped"] = True
+                    break
+        # Mark is_new
+        if rx.get("is_new") is None or rx.get("is_new") is False:
+            is_existing = any(name in med for name in existing_names)
+            if not is_existing and not rx.get("stopped"):
+                rx["is_new"] = True
+            elif is_existing:
+                rx["is_new"] = False
+
+    # ── Safety flags ──
+    safety_flags = parsed.get("safety_flags") or []
+    avoid_patterns = [
+        r'(?:do\s+not\s+give|don\'?t\s+(?:give|use|prescribe))\s+([\w\s\-]+?)(?:\s+(?:as|because|since|due|—|-))',
+        r'(?:strictly\s+)?avoid\s+([\w\s\-]+?)(?:\s+(?:as|because|since|due|—|-))',
+    ]
+    seen_drugs = set()
+    for pattern in avoid_patterns:
+        for match in re.finditer(pattern, t):
+            drug = match.group(1).strip()
+            # Skip non-drug "avoid" phrases (foods, etc.)
+            if any(w in drug for w in ["food", "banana", "coconut", "rich"]):
+                continue
+            drug_key = drug.lower()
+            if drug_key in seen_drugs:
+                continue
+            seen_drugs.add(drug_key)
+            rest = t[match.end():]
+            reason = rest[:80].split(".")[0].strip() if rest else ""
+            flag = f"Avoid {drug.title()}"
+            if reason:
+                flag += f" — {reason}"
+            if not any(drug_key in f.lower() for f in safety_flags):
+                safety_flags.append(flag)
+
+    if safety_flags:
+        parsed["safety_flags"] = safety_flags
+
+    # ── Recommended tests ──
+    rec_tests = parsed.get("recommended_tests") or []
+    test_patterns = [
+        r'(?:order|advise|recommend|do|run|get|send for|repeat)\s+(?:an?\s+)?(?:urgent\s+)?([\w\s\-]+?(?:test|x[\-\s]?ray|ultrasound|scan|culture|microscopy|panel|profile|monitoring|referral|cbc|hba1c|ecg|echo))',
+        r'((?:serum|blood|electrolyte|platelet|vitals?)[\w\s]+?every\s+\d+\s+hours)',
+        r'(daily\s+[\w\s]+?monitoring)',
+        r'((?:urine|blood|wound|stool)\s+[\w\s]+?(?:test|routine|culture|microscopy))',
+        r'([\w\s]*?referral)',
+    ]
+    for pattern in test_patterns:
+        for match in re.finditer(pattern, t):
+            test = match.group(1).strip()
+            # Clean up leading conjunctions
+            test = re.sub(r'^(?:and|or|also|then)\s+', '', test, flags=re.IGNORECASE).strip().title()
+            if len(test) > 3 and not any(test.lower() in existing.lower() or existing.lower() in test.lower() for existing in rec_tests):
+                rec_tests.append(test)
+
+    # Also catch explicit mentions like "blood sugar monitoring four times a day"
+    monitoring_patterns = [
+        r'(blood\s+sugar\s+monitoring[\w\s]*?)(?:\.|,|$)',
+        r'(platelet\s+(?:count\s+)?monitoring[\w\s]*?)(?:\.|,|$)',
+        r'(serum\s+electrolytes[\w\s]*?)(?:\.|,|$)',
+    ]
+    for pattern in monitoring_patterns:
+        for match in re.finditer(pattern, t):
+            test = match.group(1).strip().title()
+            if not any(test.lower() in existing.lower() for existing in rec_tests):
+                rec_tests.append(test)
+
+    if rec_tests:
+        parsed["recommended_tests"] = rec_tests
+
+    return parsed
 
 
 async def analyze_bill(line_items: list, policy_info: str = "") -> dict:

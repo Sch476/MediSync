@@ -54,7 +54,6 @@ export default function DoctorDashboard() {
   const quickActions = [
     { label: "New Consultation", icon: <FiMic size={20} />, path: "/doctor/consultation" },
     { label: "Clinical Notes", icon: <FiFileText size={20} />, path: "/doctor/clinical-notes" },
-    { label: "Upload Policy", icon: <FiUpload size={20} />, path: "/doctor/upload-policy" },
   ];
 
   if (loading) {

@@ -7,10 +7,12 @@ from datetime import datetime
 class Prescription(BaseModel):
     medication: str
     dosage: str
-    frequency: str
-    duration: str
-    is_covered: Optional[bool] = None  # RAG policy check result
-    alternative: Optional[str] = None  # suggested generic if not covered
+    frequency: str = ""
+    duration: str = ""
+    is_new: Optional[bool] = None       # Newly prescribed in this visit
+    stopped: Optional[bool] = None      # Discontinued in this visit
+    is_covered: Optional[bool] = None   # RAG policy check result
+    alternative: Optional[str] = None   # suggested generic if not covered
 
 
 class ClinicalNoteCreate(BaseModel):

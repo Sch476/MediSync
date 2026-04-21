@@ -319,12 +319,12 @@ export default function Consultation() {
 
             {/* Safety Flags */}
             {safetyFlags.length > 0 && (
-              <div style={{ marginBottom: 16 }}>
-                <p style={{ color: "#ff6b6b", fontSize: 13, marginBottom: 8, fontWeight: 600 }}>🚨 Safety Flags</p>
+              <div style={{ marginBottom: 16, background: "#fff5f5", border: "1px solid #ff6b6b30", borderRadius: 8, padding: "12px 16px" }}>
+                <p style={{ color: "#ff6b6b", fontSize: 13, fontWeight: 600, margin: "0 0 8px" }}>Safety Flags</p>
                 {safetyFlags.map((flag, i) => (
-                  <div key={i} style={{ padding: "10px 14px", background: "#ff6b6b18", border: "1px solid #ff6b6b", borderRadius: 8, marginBottom: 6, color: "#c0392b", fontSize: 13 }}>
-                    {typeof flag === "string" ? flag : flag.message || JSON.stringify(flag)}
-                  </div>
+                  <p key={i} style={{ margin: "0 0 4px", fontSize: 13, color: "#c0392b" }}>
+                    • {typeof flag === "string" ? flag : flag.message || JSON.stringify(flag)}
+                  </p>
                 ))}
               </div>
             )}
@@ -335,8 +335,8 @@ export default function Consultation() {
                 <p style={{ color: "#666", fontSize: 13, marginBottom: 8, fontWeight: 600 }}>Recommended Tests</p>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                   {recommendedTests.map((test, i) => (
-                    <span key={i} style={{ padding: "5px 14px", background: "#ffa50218", color: "#ffa502", borderRadius: 16, fontSize: 13, fontWeight: 500, border: "1px solid #ffa50260" }}>
-                      🧪 {typeof test === "string" ? test : test.name || JSON.stringify(test)}
+                    <span key={i} style={{ padding: "5px 14px", background: "#ffa50218", color: "#e67e22", borderRadius: 16, fontSize: 13, fontWeight: 500, border: "1px solid #ffa50240" }}>
+                      {typeof test === "string" ? test : test.name || JSON.stringify(test)}
                     </span>
                   ))}
                 </div>
@@ -352,16 +352,22 @@ export default function Consultation() {
                     <tr style={{ borderBottom: "2px solid #eee" }}>
                       <th style={{ textAlign: "left", padding: "8px", color: "#666", fontSize: 13 }}>Medication</th>
                       <th style={{ textAlign: "left", padding: "8px", color: "#666", fontSize: 13 }}>Dosage</th>
+                      <th style={{ textAlign: "left", padding: "8px", color: "#666", fontSize: 13 }}>Frequency</th>
                       <th style={{ textAlign: "left", padding: "8px", color: "#666", fontSize: 13 }}>Duration</th>
                       <th style={{ textAlign: "left", padding: "8px", color: "#666", fontSize: 13 }}>Notes</th>
                     </tr>
                   </thead>
                   <tbody>
                     {prescriptions.map((p, i) => (
-                      <tr key={i} style={{ borderBottom: "1px solid #f0f0f0" }}>
-                        <td style={{ padding: 8, fontSize: 14, color: "#333" }}>{p.drug || p.name || p.medication}</td>
-                        <td style={{ padding: 8, fontSize: 14, color: "#333" }}>{p.dosage || "—"}</td>
-                        <td style={{ padding: 8, fontSize: 14, color: "#333" }}>{p.duration || "—"}</td>
+                      <tr key={i} style={{ borderBottom: "1px solid #f0f0f0", background: p.stopped ? "#ff6b6b08" : "transparent" }}>
+                        <td style={{ padding: 8, fontSize: 14, color: p.stopped ? "#999" : "#333" }}>
+                          <span style={{ textDecoration: p.stopped ? "line-through" : "none" }}>{p.drug || p.name || p.medication}</span>
+                          {p.stopped && <span style={{ marginLeft: 8, fontSize: 10, background: "#ff6b6b", color: "#fff", padding: "2px 8px", borderRadius: 10, fontWeight: 700 }}>STOPPED</span>}
+                          {p.is_new && !p.stopped && <span style={{ marginLeft: 8, fontSize: 10, background: "#4ecdc4", color: "#fff", padding: "2px 8px", borderRadius: 10, fontWeight: 700 }}>NEW</span>}
+                        </td>
+                        <td style={{ padding: 8, fontSize: 14, color: p.stopped ? "#999" : "#333" }}>{p.dosage || "—"}</td>
+                        <td style={{ padding: 8, fontSize: 14, color: p.stopped ? "#999" : "#333" }}>{p.frequency || "—"}</td>
+                        <td style={{ padding: 8, fontSize: 14, color: p.stopped ? "#999" : "#333" }}>{p.duration || "—"}</td>
                         <td style={{ padding: 8, fontSize: 14, color: "#666" }}>{p.notes || p.instructions || "—"}</td>
                       </tr>
                     ))}

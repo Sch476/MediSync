@@ -52,6 +52,8 @@ async def structure_transcript(
             dosage=rx.get("dosage") or "",
             frequency=rx.get("frequency") or "",
             duration=rx.get("duration") or "",
+            is_new=rx.get("is_new"),
+            stopped=rx.get("stopped"),
         )
 
         if policy_id:
@@ -90,6 +92,8 @@ async def structure_transcript(
         "prescriptions": [rx.dict() for rx in prescriptions],
         "icd_codes": structured.get("icd_codes", []),
         "notes": structured.get("notes", ""),
+        "recommended_tests": structured.get("recommended_tests", []),
+        "safety_flags": structured.get("safety_flags", []),
         "fhir_encounter": fhir_encounter,
         "policy_warnings": policy_warnings,
         "created_at": datetime.utcnow(),

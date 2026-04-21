@@ -326,8 +326,18 @@ export default function DailyBill() {
                       <div style={{ fontSize: 11, color: "#888", marginTop: 3 }}>{item.reason}</div>
                     )}
                     {item.checked && !item.is_covered && item.alternative && (
-                      <div style={{ fontSize: 11, color: "#4ecdc4", marginTop: 2 }}>
-                        Covered alt: <strong>{item.alternative}</strong>
+                      <div style={{ fontSize: 11, color: "#4ecdc4", marginTop: 4, display: "flex", alignItems: "center", gap: 8 }}>
+                        <span>Covered alt: <strong>{item.alternative}</strong></span>
+                        <button
+                          onClick={() => setItems((prev) => prev.map((it) =>
+                            it._uid === item._uid
+                              ? { ...it, description: item.alternative, is_covered: true, reason: `Substituted from ${item.description}`, alternative: null, checked: true }
+                              : it
+                          ))}
+                          style={{ padding: "2px 10px", background: "#4ecdc4", color: "#fff", border: "none", borderRadius: 4, fontSize: 10, fontWeight: 700, cursor: "pointer" }}
+                        >
+                          Switch
+                        </button>
                       </div>
                     )}
                   </td>

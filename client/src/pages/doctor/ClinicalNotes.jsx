@@ -192,6 +192,32 @@ export default function ClinicalNotes() {
                             </div>
                           )}
 
+                          {/* Safety Flags */}
+                          {(structured.safety_flags || []).length > 0 && (
+                            <div style={{ marginBottom: 12, background: "#fff5f5", border: "1px solid #ff6b6b30", borderRadius: 8, padding: "10px 14px" }}>
+                              <p style={{ color: "#ff6b6b", fontSize: 12, fontWeight: 600, margin: "0 0 6px" }}>Safety Flags</p>
+                              {structured.safety_flags.map((flag, fi) => (
+                                <p key={fi} style={{ margin: "0 0 3px", fontSize: 12, color: "#c0392b" }}>
+                                  • {typeof flag === "string" ? flag : flag.message || JSON.stringify(flag)}
+                                </p>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Recommended Tests */}
+                          {(structured.recommended_tests || []).length > 0 && (
+                            <div style={{ marginBottom: 12 }}>
+                              <p style={{ color: "#666", fontSize: 12, fontWeight: 600, marginBottom: 6 }}>Recommended Tests</p>
+                              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                                {structured.recommended_tests.map((test, ti) => (
+                                  <span key={ti} style={{ padding: "3px 10px", background: "#ffa50218", color: "#e67e22", borderRadius: 14, fontSize: 12, fontWeight: 500, border: "1px solid #ffa50240" }}>
+                                    {typeof test === "string" ? test : test.name || JSON.stringify(test)}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
                           {/* Prescriptions */}
                           {prescriptions.length > 0 && (
                             <div style={{ marginBottom: 12 }}>
@@ -201,15 +227,21 @@ export default function ClinicalNotes() {
                                   <tr style={{ borderBottom: "1px solid #eee" }}>
                                     <th style={{ textAlign: "left", padding: 8, color: "#666", fontSize: 12 }}>Medication</th>
                                     <th style={{ textAlign: "left", padding: 8, color: "#666", fontSize: 12 }}>Dosage</th>
+                                    <th style={{ textAlign: "left", padding: 8, color: "#666", fontSize: 12 }}>Frequency</th>
                                     <th style={{ textAlign: "left", padding: 8, color: "#666", fontSize: 12 }}>Duration</th>
                                   </tr>
                                 </thead>
                                 <tbody>
                                   {prescriptions.map((p, pi) => (
-                                    <tr key={pi} style={{ borderBottom: "1px solid #f5f5f5" }}>
-                                      <td style={{ padding: 8, fontSize: 13, color: "#333" }}>{p.drug || p.name || p.medication}</td>
-                                      <td style={{ padding: 8, fontSize: 13, color: "#333" }}>{p.dosage || "—"}</td>
-                                      <td style={{ padding: 8, fontSize: 13, color: "#333" }}>{p.duration || "—"}</td>
+                                    <tr key={pi} style={{ borderBottom: "1px solid #f5f5f5", background: p.stopped ? "#ff6b6b08" : "transparent" }}>
+                                      <td style={{ padding: 8, fontSize: 13, color: p.stopped ? "#999" : "#333" }}>
+                                        <span style={{ textDecoration: p.stopped ? "line-through" : "none" }}>{p.drug || p.name || p.medication}</span>
+                                        {p.stopped && <span style={{ marginLeft: 6, fontSize: 10, background: "#ff6b6b", color: "#fff", padding: "1px 6px", borderRadius: 10, fontWeight: 700 }}>STOPPED</span>}
+                                        {p.is_new && !p.stopped && <span style={{ marginLeft: 6, fontSize: 10, background: "#4ecdc4", color: "#fff", padding: "1px 6px", borderRadius: 10, fontWeight: 700 }}>NEW</span>}
+                                      </td>
+                                      <td style={{ padding: 8, fontSize: 13, color: p.stopped ? "#999" : "#333" }}>{p.dosage || "—"}</td>
+                                      <td style={{ padding: 8, fontSize: 13, color: p.stopped ? "#999" : "#333" }}>{p.frequency || "—"}</td>
+                                      <td style={{ padding: 8, fontSize: 13, color: p.stopped ? "#999" : "#333" }}>{p.duration || "—"}</td>
                                     </tr>
                                   ))}
                                 </tbody>
