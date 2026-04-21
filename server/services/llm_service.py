@@ -189,12 +189,12 @@ def _mock_llm_response(prompt: str) -> str:
             "line_items": [
                 {"item": "Consultation Fee", "amount": 500, "covered": True, "explanation": "Standard consultation — covered under OPD benefit"},
                 {"item": "Blood Test - CBC", "amount": 300, "covered": True, "explanation": "Diagnostic test — covered"},
-                {"item": "Room Charges (Deluxe)", "amount": 8000, "covered": False, "explanation": "Exceeds room rent cap of Rs 5000/day. You pay Rs 3000 extra"},
+                {"item": "Room Charges (Deluxe)", "amount": 8000, "covered": False, "explanation": "Exceeds room rent cap of ₹5000/day. You pay ₹3000 extra"},
             ],
             "total": 8800,
             "covered_total": 5800,
             "out_of_pocket": 3000,
-            "summary": "Most charges are covered. Room upgrade costs Rs 3000 extra above your policy's room rent cap."
+            "summary": "Most charges are covered. Room upgrade costs ₹3000 extra above your policy's room rent cap."
         })
 
     elif "simplif" in prompt_lower or "explain" in prompt_lower:
@@ -325,11 +325,14 @@ Write the simplified version:"""
 
 async def check_policy_coverage(medication: str, policy_context: str) -> dict:
     """Check if a medication is covered and, if not, find a covered equivalent from the same policy."""
-    prompt = f"""You are a clinical pharmacist reviewing an insurance policy to check drug coverage.
+    prompt = f"""You are a clinical pharmacist reviewing an insurance policy to check drug/item coverage.
 
 TASK: Check if "{medication}" is covered under this insurance policy, and if it is NOT covered, find the closest therapeutically equivalent drug that IS listed as covered in this same policy.
 
-Rules for finding an equivalent:
+STRICT RULES:
+- ONLY use information explicitly written in the policy text below. Do NOT assume, guess, or infer.
+- If the policy text does not mention this item at all, set is_covered to false with reason "Not found in the policy document — cannot verify coverage."
+- Do NOT say "assumed to be covered" or "defaulting to standard coverage." Either the policy says it is covered, or it does not.
 - Same active ingredient but different brand = equivalent
 - Same pharmacological class treating the same condition = equivalent (e.g. Sucralfate excluded but Pantoprazole covered for gastric ulcer = valid substitution)
 - Different class treating same condition only if the policy explicitly lists it = acceptable
@@ -341,7 +344,7 @@ Policy Information:
 Return ONLY valid JSON, no explanation outside the JSON:
 {{
   "is_covered": true or false,
-  "reason": "one sentence: why it is covered or why it is excluded, quoting the policy section",
+  "reason": "one sentence quoting the specific policy section that covers or excludes this item",
   "alternative": "exact drug name from policy if excluded and equivalent exists, otherwise null",
   "alt_reason": "why this drug is therapeutically equivalent and where the policy covers it, or null"
 }}"""
@@ -350,4 +353,4 @@ Return ONLY valid JSON, no explanation outside the JSON:
     parsed = _extract_json(response)
     if parsed:
         return parsed
-    return {"is_covered": True, "reason": "Unable to verify — defaulting to covered", "alternative": None, "alt_reason": None}
+    return {"is_covered": False, "reason": "Unable to verify — could not parse LLM response. Marked as not covered for safety.", "alternative": None, "alt_reason": None}

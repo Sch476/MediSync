@@ -198,13 +198,13 @@ export default function BillDecoder() {
               <div style={{ ...cardStyle, textAlign: "center" }}>
                 <div style={{ fontSize: 13, color: "#636e72", marginBottom: 4 }}>Total</div>
                 <div style={{ fontSize: 24, fontWeight: 700, color: "#2d3436" }}>
-                  {summary.total != null ? `$${Number(summary.total).toFixed(2)}` : "--"}
+                  {summary.total != null ? `₹${Number(summary.total).toFixed(2)}` : "--"}
                 </div>
               </div>
               <div style={{ ...cardStyle, textAlign: "center" }}>
                 <div style={{ fontSize: 13, color: "#636e72", marginBottom: 4 }}>Covered Amount</div>
                 <div style={{ fontSize: 24, fontWeight: 700, color: SUCCESS }}>
-                  {summary.covered_amount != null ? `$${Number(summary.covered_amount).toFixed(2)}` : "--"}
+                  {summary.covered_amount != null ? `₹${Number(summary.covered_amount).toFixed(2)}` : "--"}
                 </div>
               </div>
               <div
@@ -217,7 +217,7 @@ export default function BillDecoder() {
               >
                 <div style={{ fontSize: 13, color: "#636e72", marginBottom: 4 }}>Out-of-Pocket</div>
                 <div style={{ fontSize: 24, fontWeight: 700, color: DANGER }}>
-                  {summary.out_of_pocket != null ? `$${Number(summary.out_of_pocket).toFixed(2)}` : "--"}
+                  {summary.out_of_pocket != null ? `₹${Number(summary.out_of_pocket).toFixed(2)}` : "--"}
                 </div>
               </div>
             </div>
@@ -251,7 +251,7 @@ export default function BillDecoder() {
                     <tr key={idx} style={{ borderBottom: "1px solid #f1f2f6" }}>
                       <td style={{ padding: "12px", color: "#2d3436" }}>{item.description}</td>
                       <td style={{ padding: "12px", textAlign: "right", color: "#2d3436", fontWeight: 600 }}>
-                        ${Number(item.amount).toFixed(2)}
+                        ₹{Number(item.amount).toFixed(2)}
                       </td>
                       <td style={{ padding: "12px", textAlign: "center" }}>
                         {item.covered ? (

@@ -56,7 +56,7 @@ async def structure_transcript(
 
         if policy_id:
             coverage = await check_medication_coverage(policy_id, prescription.medication)
-            prescription.is_covered = coverage.get("is_covered", True)
+            prescription.is_covered = coverage.get("is_covered", False)
             prescription.alternative = coverage.get("alternative")
 
             if not prescription.is_covered:

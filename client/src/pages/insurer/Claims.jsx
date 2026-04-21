@@ -114,7 +114,7 @@ export default function Claims() {
 
   const formatAmount = (amount) => {
     if (amount == null) return "N/A";
-    return "$" + Number(amount).toLocaleString("en-US", { minimumFractionDigits: 2 });
+    return "₹" + Number(amount).toLocaleString("en-IN", { minimumFractionDigits: 2 });
   };
 
   const getBadge = (status) => {

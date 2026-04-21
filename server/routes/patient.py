@@ -264,11 +264,11 @@ def _explain_claim_status(claim: dict) -> str:
     approved = claim.get("approved_amount")
 
     explanations = {
-        "pending": f"Your claim for Rs {amount:,.0f} is being reviewed. This usually takes 1-2 business days.",
-        "approved": f"Great news! Your claim has been approved for Rs {approved or amount:,.0f}."
-                    + (f" (Original claim: Rs {amount:,.0f})" if approved and approved < amount else ""),
-        "rejected": f"Your claim for Rs {amount:,.0f} was not approved. Reason: {claim.get('rejection_reason', 'Contact your insurer for details')}.",
-        "flagged": f"Your claim for Rs {amount:,.0f} needs additional review. Reason: {claim.get('adjudication_notes', 'Under manual review')}.",
+        "pending": f"Your claim for ₹{amount:,.0f} is being reviewed. This usually takes 1-2 business days.",
+        "approved": f"Great news! Your claim has been approved for ₹{approved or amount:,.0f}."
+                    + (f" (Original claim: ₹{amount:,.0f})" if approved and approved < amount else ""),
+        "rejected": f"Your claim for ₹{amount:,.0f} was not approved. Reason: {claim.get('rejection_reason', 'Contact your insurer for details')}.",
+        "flagged": f"Your claim for ₹{amount:,.0f} needs additional review. Reason: {claim.get('adjudication_notes', 'Under manual review')}.",
     }
 
     return explanations.get(status, "Status unknown. Please contact your insurer.")
@@ -322,6 +322,47 @@ async def upload_my_policy(
     )
 
     return {"message": "Policy uploaded successfully", "policy_id": policy_id, **result}
+
+
+@router.get("/payable")
+async def get_payable_items(current_user: dict = Depends(patient_role)):
+    """Get all uncovered daily bill items the patient needs to pay at the counter."""
+    db = get_db()
+    bills = await db.daily_bills.find(
+        {"patient_id": current_user["id"], "patient_total": {"$gt": 0}, "patient_paid": {"$ne": True}}
+    ).sort("bill_date", -1).to_list(50)
+
+    total_payable = sum(b.get("patient_total", 0) for b in bills)
+
+    result = []
+    for b in bills:
+        result.append({
+            "id": str(b["_id"]),
+            "bill_date": b.get("bill_date"),
+            "hospital_name": b.get("hospital_name"),
+            "patient_items": b.get("patient_items", []),
+            "patient_total": b.get("patient_total", 0),
+            "status": b.get("status"),
+        })
+
+    return {"total_payable": total_payable, "bills": result}
+
+
+@router.post("/payable/{bill_id}/paid")
+async def mark_bill_as_paid(bill_id: str, current_user: dict = Depends(patient_role)):
+    """Mark a daily bill's patient portion as paid at the counter."""
+    db = get_db()
+    bill = await db.daily_bills.find_one({"_id": ObjectId(bill_id), "patient_id": current_user["id"]})
+    if not bill:
+        raise HTTPException(status_code=404, detail="Bill not found")
+    if bill.get("patient_paid"):
+        raise HTTPException(status_code=400, detail="Already marked as paid")
+
+    await db.daily_bills.update_one(
+        {"_id": ObjectId(bill_id)},
+        {"$set": {"patient_paid": True, "patient_paid_at": datetime.utcnow()}},
+    )
+    return {"message": "Marked as paid"}
 
 
 @router.get("/my-policy")

@@ -145,7 +145,7 @@ export default function MyClaims() {
                     <div style={{ textAlign: "right" }}>
                       <div style={{ fontSize: 13, color: "#636e72" }}>Amount</div>
                       <div style={{ fontSize: 22, fontWeight: 700, color: "#2d3436" }}>
-                        ${claim.amount != null ? Number(claim.amount).toFixed(2) : "--"}
+                        ₹{(claim.total_amount ?? claim.amount) != null ? Number(claim.total_amount ?? claim.amount).toFixed(2) : "--"}
                       </div>
                     </div>
                     {items.length > 0 && (
@@ -221,7 +221,7 @@ export default function MyClaims() {
                                 color: "#2d3436",
                               }}
                             >
-                              {item.amount != null ? `$${Number(item.amount).toFixed(2)}` : "--"}
+                              {item.amount != null ? `₹${Number(item.amount).toFixed(2)}` : "--"}
                             </td>
                             <td style={{ padding: "10px 12px", textAlign: "center" }}>
                               {item.status ? (

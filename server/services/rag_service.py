@@ -88,6 +88,7 @@ async def query_policy(policy_id: str, query: str, n_results: int = 3) -> str:
     """Query a policy's vector store to find relevant context for a question.
 
     Used during consultation to check if medications/procedures are covered.
+    Returns empty string if no policy text can be found — callers must handle this.
     """
     try:
         collection = get_policy_collection(policy_id)
@@ -98,14 +99,40 @@ async def query_policy(policy_id: str, query: str, n_results: int = 3) -> str:
         )
 
         if results and results["documents"] and results["documents"][0]:
-            # Combine the most relevant chunks as context
             context = "\n---\n".join(results["documents"][0])
-            return context
+            if context.strip():
+                return context
+
+        # ChromaDB has no data — try to re-index from saved PDF
+        reindexed = await _try_reindex(policy_id)
+        if reindexed:
+            results = collection.query(query_texts=[query], n_results=n_results)
+            if results and results["documents"] and results["documents"][0]:
+                context = "\n---\n".join(results["documents"][0])
+                if context.strip():
+                    return context
 
     except Exception as e:
         print(f"RAG query error: {e}")
 
-    return "No policy information available. Defaulting to standard coverage assumptions."
+    return ""
+
+
+async def _try_reindex(policy_id: str) -> bool:
+    """Re-index a policy from saved PDF when ChromaDB lost the data (e.g. server restart)."""
+    from database import get_db
+    db = get_db()
+    policy_doc = await db.policy_documents.find_one({"policy_id": policy_id})
+    if not policy_doc or not policy_doc.get("file_path"):
+        return False
+
+    file_path = policy_doc["file_path"]
+    if not os.path.exists(file_path):
+        return False
+
+    print(f"[RAG] Re-indexing policy {policy_id} from {file_path}")
+    result = await index_policy_pdf(file_path, policy_id, policy_doc.get("insurer_name", "Unknown"))
+    return "error" not in result
 
 
 async def check_medication_coverage(policy_id: str, medication: str) -> dict:

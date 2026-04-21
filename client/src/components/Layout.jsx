@@ -6,7 +6,7 @@ import { useAuth } from "../context/AuthContext";
 import {
   FiHome, FiMic, FiFileText, FiUpload, FiClipboard,
   FiActivity, FiBarChart2, FiCheckCircle, FiUser, FiLogOut,
-  FiHeart, FiGlobe, FiAlertTriangle, FiUsers
+  FiHeart, FiGlobe, FiAlertTriangle, FiUsers, FiDollarSign, FiCalendar,
 } from "react-icons/fi";
 
 const navItems = {
@@ -19,6 +19,7 @@ const navItems = {
   hospital: [
     { path: "/hospital",               label: "Dashboard",       icon: <FiHome /> },
     { path: "/hospital/patients",      label: "Patient Records", icon: <FiUsers /> },
+    { path: "/hospital/daily-bill",    label: "Daily Bill",      icon: <FiCalendar /> },
     { path: "/hospital/submit-claim",  label: "Submit Claim",    icon: <FiClipboard /> },
     { path: "/hospital/upload-policy", label: "Upload Policy",   icon: <FiUpload /> },
   ],
@@ -32,8 +33,9 @@ const navItems = {
     { path: "/patient/upload-policy", label: "My Insurance Policy", icon: <FiUpload /> },
     { path: "/patient/bill-decoder", label: "Bill Decoder", icon: <FiFileText /> },
     { path: "/patient/discharge", label: "Discharge Summary", icon: <FiGlobe /> },
-    { path: "/patient/health-check", label: "Health Check", icon: <FiHeart /> },
-    { path: "/patient/claims", label: "My Claims", icon: <FiCheckCircle /> },
+    { path: "/patient/health-check", label: "Health Check",   icon: <FiHeart /> },
+    { path: "/patient/claims",       label: "My Claims",       icon: <FiCheckCircle /> },
+    { path: "/patient/payable",      label: "My Payable",      icon: <FiDollarSign /> },
   ],
 };
 

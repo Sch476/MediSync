@@ -91,7 +91,7 @@ export default function Analytics() {
     { label: "Total Claims", value: data.total_claims ?? 0, icon: <FiFileText size={24} />, color: "#4ecdc4" },
     {
       label: "Total Amount",
-      value: "Rs " + Number(data.total_amount ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2 }),
+      value: "₹" + Number(data.total_amount ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2 }),
       icon: <FiDollarSign size={24} />,
       color: "#ffa502",
     },
@@ -237,7 +237,7 @@ export default function Analytics() {
                 stroke="#ffa502"
                 strokeWidth={2}
                 dot={{ r: 4 }}
-                name="Total Amount (Rs)"
+                name="Total Amount (₹)"
               />
             </LineChart>
           </ResponsiveContainer>

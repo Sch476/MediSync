@@ -251,7 +251,7 @@ async def check_medication_coverage(
             "dosage": rx.get("dosage", ""),
             "frequency": rx.get("frequency", ""),
             "duration": rx.get("duration", ""),
-            "is_covered": coverage.get("is_covered", True),
+            "is_covered": coverage.get("is_covered", False),
             "reason": coverage.get("reason", ""),
             "alternative": coverage.get("alternative"),
             "alt_reason": coverage.get("alt_reason"),
@@ -261,6 +261,147 @@ async def check_medication_coverage(
         "policy_id": policy_id,
         "insurer_name": insurer_name,
         "results": results,
+    }
+
+
+@router.post("/daily-bill/check-coverage")
+async def check_item_coverage_for_bill(
+    body: dict,
+    current_user: dict = Depends(hospital_role),
+):
+    """Real-time coverage check for a single daily bill item."""
+    db = get_db()
+    patient_id = body.get("patient_id")
+    description = body.get("description", "")
+    category = body.get("category", "other")
+
+    policy_doc = await db.policy_documents.find_one({"patient_id": patient_id})
+    if not policy_doc:
+        raise HTTPException(
+            status_code=404,
+            detail="No insurance policy found for this patient. Upload the policy PDF first.",
+        )
+
+    # ALL items go through RAG + LLM — no guessing, no keyword shortcuts
+    policy_context = await query_policy(
+        policy_doc["policy_id"],
+        f"coverage for {description} drug formulary excluded medications covered items procedures",
+    )
+
+    if not policy_context:
+        raise HTTPException(
+            status_code=400,
+            detail="Policy exists but could not be read from the index. Please re-upload the policy PDF.",
+        )
+
+    return await check_policy_coverage(description, policy_context)
+
+
+@router.post("/daily-bill")
+async def create_daily_bill(
+    body: dict,
+    current_user: dict = Depends(hospital_role),
+):
+    """Save a daily bill with per-item coverage already resolved."""
+    db = get_db()
+    patient_id = body.get("patient_id")
+    items = body.get("items", [])
+
+    patient = await db.users.find_one({"_id": ObjectId(patient_id)})
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient not found")
+
+    insurer_items = [i for i in items if i.get("is_covered")]
+    patient_items = [i for i in items if not i.get("is_covered")]
+    insurer_total = sum(float(i.get("amount", 0)) for i in insurer_items)
+    patient_total = sum(float(i.get("amount", 0)) for i in patient_items)
+
+    bill_doc = {
+        "hospital_id": current_user["id"],
+        "hospital_name": current_user.get("full_name"),
+        "patient_id": patient_id,
+        "patient_name": patient.get("full_name"),
+        "policy_number": patient.get("policy_number") or body.get("policy_number"),
+        "insurer_name": patient.get("insurer_name") or body.get("insurer_name"),
+        "bill_date": body.get("bill_date", datetime.now(timezone.utc).date().isoformat()),
+        "items": items,
+        "insurer_items": insurer_items,
+        "patient_items": patient_items,
+        "insurer_total": insurer_total,
+        "patient_total": patient_total,
+        "total_amount": insurer_total + patient_total,
+        "status": "draft",
+        "claim_id": None,
+        "created_at": datetime.now(timezone.utc),
+        "submitted_at": None,
+    }
+
+    result = await db.daily_bills.insert_one(bill_doc)
+    return {
+        "id": str(result.inserted_id),
+        "insurer_total": insurer_total,
+        "patient_total": patient_total,
+        "total_amount": insurer_total + patient_total,
+    }
+
+
+@router.post("/daily-bill/{bill_id}/submit")
+async def submit_daily_bill(
+    bill_id: str,
+    current_user: dict = Depends(hospital_role),
+):
+    """Submit only the covered items as an itemized claim to the insurer."""
+    db = get_db()
+    bill = await db.daily_bills.find_one({"_id": ObjectId(bill_id)})
+    if not bill:
+        raise HTTPException(status_code=404, detail="Daily bill not found")
+    if bill.get("status") == "submitted":
+        raise HTTPException(status_code=400, detail="Bill already submitted")
+
+    insurer_items = bill.get("insurer_items", [])
+    if not insurer_items:
+        raise HTTPException(status_code=400, detail="No covered items to submit to insurer")
+
+    claim_doc = {
+        "hospital_id": current_user["id"],
+        "hospital_name": current_user.get("full_name"),
+        "submitted_by": "hospital",
+        "patient_id": bill["patient_id"],
+        "patient_name": bill["patient_name"],
+        "policy_number": bill.get("policy_number"),
+        "insurer_name": bill.get("insurer_name"),
+        "clinical_note_id": None,
+        "diagnosis": f"Daily Bill — {bill.get('bill_date')}",
+        "icd_codes": [],
+        "items": [
+            {"description": i["description"], "icd_code": None, "amount": float(i["amount"]), "category": i.get("category", "other")}
+            for i in insurer_items
+        ],
+        "total_amount": bill["insurer_total"],
+        "room_type": None,
+        "status": "pending",
+        "adjudication_notes": None,
+        "rejection_reason": None,
+        "flag_reasons": [],
+        "approved_amount": None,
+        "submitted_at": datetime.now(timezone.utc),
+        "adjudicated_at": None,
+        "daily_bill_id": str(bill["_id"]),
+    }
+
+    claim_result = await db.claims.insert_one(claim_doc)
+    claim_id = str(claim_result.inserted_id)
+
+    await db.daily_bills.update_one(
+        {"_id": ObjectId(bill_id)},
+        {"$set": {"status": "submitted", "claim_id": claim_id, "submitted_at": datetime.now(timezone.utc)}},
+    )
+
+    return {
+        "claim_id": claim_id,
+        "insurer_total": bill["insurer_total"],
+        "patient_total": bill["patient_total"],
+        "patient_items": bill.get("patient_items", []),
     }
 
 

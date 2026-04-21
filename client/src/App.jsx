@@ -28,6 +28,7 @@ import HospitalDashboard from "./pages/hospital/HospitalDashboard";
 import PatientRecords from "./pages/hospital/PatientRecords";
 import SubmitClaim from "./pages/hospital/SubmitClaim";
 import HospitalUploadPolicy from "./pages/hospital/HospitalUploadPolicy";
+import DailyBill from "./pages/hospital/DailyBill";
 
 // Patient pages
 import PatientDashboard from "./pages/patient/PatientDashboard";
@@ -36,6 +37,7 @@ import DischargeSummary from "./pages/patient/DischargeSummary";
 import HealthCheck from "./pages/patient/HealthCheck";
 import MyClaims from "./pages/patient/MyClaims";
 import PatientUploadPolicy from "./pages/patient/PatientUploadPolicy";
+import Payable from "./pages/patient/Payable";
 
 function RootRedirect() {
   const { user, loading } = useAuth();
@@ -71,6 +73,7 @@ export default function App() {
           }>
             <Route index element={<HospitalDashboard />} />
             <Route path="patients" element={<PatientRecords />} />
+            <Route path="daily-bill" element={<DailyBill />} />
             <Route path="submit-claim" element={<SubmitClaim />} />
             <Route path="upload-policy" element={<HospitalUploadPolicy />} />
           </Route>
@@ -94,6 +97,7 @@ export default function App() {
             <Route path="discharge" element={<DischargeSummary />} />
             <Route path="health-check" element={<HealthCheck />} />
             <Route path="claims" element={<MyClaims />} />
+            <Route path="payable" element={<Payable />} />
           </Route>
 
           {/* Root redirect */}
