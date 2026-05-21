@@ -1,6 +1,4 @@
-/**
- * Layout — role-based sidebar navigation + top bar with user info.
- */
+
 import { Link, useLocation, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import {
@@ -32,7 +30,7 @@ const navItems = {
     { path: "/patient", label: "Dashboard", icon: <FiHome /> },
     { path: "/patient/upload-policy", label: "My Insurance Policy", icon: <FiUpload /> },
     { path: "/patient/bill-decoder", label: "Bill Decoder", icon: <FiFileText /> },
-    { path: "/patient/discharge", label: "Discharge Summary", icon: <FiGlobe /> },
+    { path: "/patient/discharge",    label: "Discharge Summary", icon: <FiGlobe /> },
     { path: "/patient/health-check", label: "Health Check",   icon: <FiHeart /> },
     { path: "/patient/claims",       label: "My Claims",       icon: <FiCheckCircle /> },
     { path: "/patient/payable",      label: "My Payable",      icon: <FiDollarSign /> },
@@ -52,7 +50,7 @@ export default function Layout() {
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: "#f0f2f5" }}>
-      {/* Sidebar */}
+
       <aside style={{
         width: 250, background: "#1a1a2e", color: "#fff",
         padding: "20px 0", display: "flex", flexDirection: "column",
@@ -106,7 +104,7 @@ export default function Layout() {
         </div>
       </aside>
 
-      {/* Main content area */}
+
       <main style={{ flex: 1, padding: 24, overflow: "auto" }}>
         <Outlet />
       </main>

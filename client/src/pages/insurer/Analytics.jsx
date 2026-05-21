@@ -76,10 +76,13 @@ export default function Analytics() {
 
   const PIE_COLORS = [STATUS_COLORS.pending, STATUS_COLORS.approved, STATUS_COLORS.rejected, STATUS_COLORS.flagged];
 
-  const diagnosisData = (data.top_diagnoses || []).map((d) => ({
-    name: d.diagnosis,
-    count: d.count,
-  }));
+  const diagnosisData = (data.top_diagnoses || [])
+    .slice(0, 8)
+    .map((d) => ({
+      name: d.diagnosis.length > 28 ? d.diagnosis.slice(0, 26) + "…" : d.diagnosis,
+      fullName: d.diagnosis,
+      count: d.count,
+    }));
 
   const trendData = (data.monthly_trend || []).map((m) => ({
     month: m.month,
@@ -122,7 +125,7 @@ export default function Analytics() {
         Claims analytics and insights for your organization.
       </p>
 
-      {/* Summary Stats */}
+
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 20, marginBottom: 32 }}>
         {summaryCards.map((card) => (
           <div key={card.label} style={{ ...cardStyle, display: "flex", alignItems: "center", gap: 16 }}>
@@ -148,9 +151,9 @@ export default function Analytics() {
         ))}
       </div>
 
-      {/* Charts Row */}
+
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginBottom: 24 }}>
-        {/* Pie Chart: Claims by Status */}
+
         <div style={cardStyle}>
           <h3 style={{ fontSize: 16, fontWeight: 600, color: "#2d3436", marginBottom: 16 }}>
             Claims by Status
@@ -181,23 +184,24 @@ export default function Analytics() {
           )}
         </div>
 
-        {/* Bar Chart: Top Diagnoses */}
+
         <div style={cardStyle}>
           <h3 style={{ fontSize: 16, fontWeight: 600, color: "#2d3436", marginBottom: 16 }}>
             Top Diagnoses by Claim Count
           </h3>
           {diagnosisData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={diagnosisData} layout="vertical" margin={{ left: 20 }}>
+            <ResponsiveContainer width="100%" height={Math.max(280, diagnosisData.length * 44)}>
+              <BarChart data={diagnosisData} layout="vertical" margin={{ left: 10, right: 20, top: 8, bottom: 8 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f2f6" />
-                <XAxis type="number" tick={{ fontSize: 12, fill: "#636e72" }} />
+                <XAxis type="number" tick={{ fontSize: 12, fill: "#636e72" }} allowDecimals={false} />
                 <YAxis
                   dataKey="name"
                   type="category"
                   tick={{ fontSize: 12, fill: "#636e72" }}
-                  width={120}
+                  width={210}
+                  interval={0}
                 />
-                <Tooltip />
+                <Tooltip formatter={(value) => [value, "Claims"]} labelFormatter={(label, payload) => payload?.[0]?.payload?.fullName || label} />
                 <Bar dataKey="count" fill="#4ecdc4" radius={[0, 6, 6, 0]} barSize={20} />
               </BarChart>
             </ResponsiveContainer>
@@ -207,7 +211,7 @@ export default function Analytics() {
         </div>
       </div>
 
-      {/* Line Chart: Monthly Trend */}
+
       <div style={cardStyle}>
         <h3 style={{ fontSize: 16, fontWeight: 600, color: "#2d3436", marginBottom: 16 }}>
           Monthly Claims Trend

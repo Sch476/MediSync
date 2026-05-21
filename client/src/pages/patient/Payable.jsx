@@ -49,7 +49,7 @@ export default function Payable() {
         Items not covered by your insurance policy — to be paid at the hospital counter.
       </p>
 
-      {/* Total Banner */}
+
       <div
         style={{
           background: allClear
@@ -84,7 +84,7 @@ export default function Payable() {
         )}
       </div>
 
-      {/* Bills List */}
+
       {data.bills?.length === 0 ? (
         <div style={{ background: "#fff", borderRadius: 12, padding: 48, textAlign: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}>
           <FiCheckCircle size={40} color="#2ed573" style={{ marginBottom: 12 }} />
@@ -102,7 +102,7 @@ export default function Payable() {
               marginBottom: 16,
             }}
           >
-            {/* Bill Header */}
+
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
               <div>
                 <p style={{ fontSize: 16, fontWeight: 700, color: "#2d3436", margin: "0 0 3px" }}>
@@ -129,7 +129,7 @@ export default function Payable() {
               </div>
             </div>
 
-            {/* Mark as Paid */}
+
             <div style={{ marginBottom: 12 }}>
               <button
                 onClick={() => markAsPaid(bill.id)}
@@ -146,7 +146,7 @@ export default function Payable() {
               </button>
             </div>
 
-            {/* Items */}
+
             <div style={{ borderTop: "1px solid #f5f5f5", paddingTop: 12 }}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr auto", gap: 8, marginBottom: 6 }}>
                 <span style={{ fontSize: 11, fontWeight: 700, color: "#aaa", textTransform: "uppercase", letterSpacing: 0.5 }}>Item</span>

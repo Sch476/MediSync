@@ -73,7 +73,7 @@ export default function DoctorDashboard() {
         Here is your dashboard overview
       </p>
 
-      {/* Stat Cards */}
+
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 20, marginBottom: 36 }}>
         {statCards.map((s) => (
           <div key={s.label} style={{ ...card, display: "flex", alignItems: "center", gap: 16 }}>
@@ -99,7 +99,7 @@ export default function DoctorDashboard() {
         ))}
       </div>
 
-      {/* Quick Actions */}
+
       <div style={{ ...card, marginBottom: 36 }}>
         <h2 style={{ color: "#333", fontSize: 18, marginTop: 0, marginBottom: 16 }}>Quick Actions</h2>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
@@ -128,7 +128,7 @@ export default function DoctorDashboard() {
         </div>
       </div>
 
-      {/* Recent Clinical Notes */}
+
       <div style={card}>
         <h2 style={{ color: "#333", fontSize: 18, marginTop: 0, marginBottom: 16 }}>Recent Clinical Notes</h2>
         {recentNotes.length === 0 ? (

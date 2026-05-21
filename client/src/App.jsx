@@ -1,36 +1,34 @@
-/**
- * MediSync App — Root component with role-based routing.
- */
+
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import Layout from "./components/Layout";
 import ProtectedRoute from "./components/ProtectedRoute";
 
-// Auth pages
+
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 
-// Doctor pages
+
 import DoctorDashboard from "./pages/doctor/DoctorDashboard";
 import Consultation from "./pages/doctor/Consultation";
 import ClinicalNotes from "./pages/doctor/ClinicalNotes";
 import UploadPolicy from "./pages/doctor/UploadPolicy";
 import PatientAlerts from "./pages/doctor/PatientAlerts";
 
-// Insurer pages
+
 import InsurerDashboard from "./pages/insurer/InsurerDashboard";
 import Claims from "./pages/insurer/Claims";
 import Analytics from "./pages/insurer/Analytics";
 
-// Hospital pages
+
 import HospitalDashboard from "./pages/hospital/HospitalDashboard";
 import PatientRecords from "./pages/hospital/PatientRecords";
 import SubmitClaim from "./pages/hospital/SubmitClaim";
 import HospitalUploadPolicy from "./pages/hospital/HospitalUploadPolicy";
 import DailyBill from "./pages/hospital/DailyBill";
 
-// Patient pages
+
 import PatientDashboard from "./pages/patient/PatientDashboard";
 import BillDecoder from "./pages/patient/BillDecoder";
 import DischargeSummary from "./pages/patient/DischargeSummary";
@@ -52,11 +50,11 @@ export default function App() {
       <BrowserRouter>
         <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
         <Routes>
-          {/* Public routes */}
+
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
 
-          {/* Doctor routes */}
+
           <Route path="/doctor" element={
             <ProtectedRoute allowedRoles={["doctor"]}><Layout /></ProtectedRoute>
           }>
@@ -67,7 +65,7 @@ export default function App() {
             <Route path="alerts" element={<PatientAlerts />} />
           </Route>
 
-          {/* Hospital routes */}
+
           <Route path="/hospital" element={
             <ProtectedRoute allowedRoles={["hospital"]}><Layout /></ProtectedRoute>
           }>
@@ -78,7 +76,7 @@ export default function App() {
             <Route path="upload-policy" element={<HospitalUploadPolicy />} />
           </Route>
 
-          {/* Insurer routes */}
+
           <Route path="/insurer" element={
             <ProtectedRoute allowedRoles={["insurer"]}><Layout /></ProtectedRoute>
           }>
@@ -87,7 +85,7 @@ export default function App() {
             <Route path="analytics" element={<Analytics />} />
           </Route>
 
-          {/* Patient routes */}
+
           <Route path="/patient" element={
             <ProtectedRoute allowedRoles={["patient"]}><Layout /></ProtectedRoute>
           }>
@@ -100,7 +98,7 @@ export default function App() {
             <Route path="payable" element={<Payable />} />
           </Route>
 
-          {/* Root redirect */}
+
           <Route path="/" element={<RootRedirect />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

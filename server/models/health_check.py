@@ -7,8 +7,8 @@ from datetime import datetime
 class HealthCheckCreate(BaseModel):
     wound_condition: Literal["normal", "red", "swollen", "discharge", "bleeding"]
     fever: bool = False
-    temperature: Optional[float] = None  # in Celsius
-    pain_level: int = Field(..., ge=0, le=10)  # 0-10 scale
+    temperature: Optional[float] = None
+    pain_level: int = Field(..., ge=0, le=10)
     appetite: Literal["normal", "reduced", "none"]
     mobility: Literal["normal", "limited", "bedridden"]
     medication_taken: bool = True
@@ -19,7 +19,7 @@ class HealthCheckInDB(BaseModel):
     """Full health check document as stored in MongoDB."""
     patient_id: str
     patient_name: str
-    doctor_id: str  # Assigned doctor to notify
+    doctor_id: str
     wound_condition: str
     fever: bool
     temperature: Optional[float]
@@ -28,7 +28,6 @@ class HealthCheckInDB(BaseModel):
     mobility: str
     medication_taken: bool
     additional_notes: Optional[str]
-    # Auto-flag system
     is_flagged: bool = False
     flag_reasons: list = []
     doctor_notified: bool = False

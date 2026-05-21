@@ -5,8 +5,6 @@ import {
   FiUploadCloud,
   FiCheckCircle,
   FiXCircle,
-  FiChevronDown,
-  FiChevronUp,
   FiDollarSign,
   FiFile,
 } from "react-icons/fi";
@@ -27,7 +25,6 @@ export default function BillDecoder() {
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
-  const [ocrExpanded, setOcrExpanded] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -70,10 +67,17 @@ export default function BillDecoder() {
     }
   };
 
-  const summary = result?.summary || {};
-  const items = result?.items || [];
-  const ocrText = result?.ocr_text || result?.raw_text || "";
-  const plainSummary = result?.plain_language_summary || result?.explanation || "";
+  const analysis = result?.analysis || {};
+  const ocrItems = result?.items || [];
+  const llmItems = analysis.line_items || [];
+  const items = llmItems.length ? llmItems : ocrItems;
+  const summary = {
+    total: analysis.total ?? ocrItems.reduce((s, i) => s + (Number(i.amount) || 0), 0),
+    covered_amount: analysis.covered_total,
+    out_of_pocket: analysis.out_of_pocket,
+  };
+  const plainSummary = analysis.summary || "";
+  const hasCoverage = items.some((it) => typeof it.covered === "boolean");
 
   return (
     <div style={{ maxWidth: 900, margin: "0 auto", padding: "32px 16px" }}>
@@ -84,7 +88,7 @@ export default function BillDecoder() {
         Upload a medical bill image and we will break it down for you in plain language.
       </p>
 
-      {/* Upload Area */}
+
       <div
         style={{
           ...cardStyle,
@@ -133,7 +137,7 @@ export default function BillDecoder() {
         )}
       </div>
 
-      {/* Upload Button */}
+
       <div style={{ textAlign: "center", marginBottom: 32 }}>
         <button
           onClick={handleUpload}
@@ -154,7 +158,7 @@ export default function BillDecoder() {
         </button>
       </div>
 
-      {/* Loading Spinner */}
+
       {loading && (
         <div style={{ textAlign: "center", marginBottom: 32 }}>
           <div
@@ -173,10 +177,10 @@ export default function BillDecoder() {
         </div>
       )}
 
-      {/* Results */}
+
       {result && (
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-          {/* Plain Language Summary */}
+
           {plainSummary && (
             <div style={{ ...cardStyle, borderLeft: `4px solid ${PRIMARY}` }}>
               <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 12, color: "#2d3436" }}>
@@ -188,7 +192,7 @@ export default function BillDecoder() {
             </div>
           )}
 
-          {/* Summary Card */}
+
           <div style={{ ...cardStyle, background: "#f8f9fa" }}>
             <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 16, color: "#2d3436" }}>
               <FiDollarSign style={{ verticalAlign: "middle", marginRight: 8 }} />
@@ -223,7 +227,7 @@ export default function BillDecoder() {
             </div>
           </div>
 
-          {/* Bill Items Table */}
+
           {items.length > 0 && (
             <div style={{ ...cardStyle, overflowX: "auto" }}>
               <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 16, color: "#2d3436" }}>
@@ -247,65 +251,38 @@ export default function BillDecoder() {
                   </tr>
                 </thead>
                 <tbody>
-                  {items.map((item, idx) => (
-                    <tr key={idx} style={{ borderBottom: "1px solid #f1f2f6" }}>
-                      <td style={{ padding: "12px", color: "#2d3436" }}>{item.description}</td>
-                      <td style={{ padding: "12px", textAlign: "right", color: "#2d3436", fontWeight: 600 }}>
-                        ₹{Number(item.amount).toFixed(2)}
-                      </td>
-                      <td style={{ padding: "12px", textAlign: "center" }}>
-                        {item.covered ? (
-                          <FiCheckCircle size={20} color={SUCCESS} />
-                        ) : (
-                          <FiXCircle size={20} color={DANGER} />
-                        )}
-                      </td>
-                      <td style={{ padding: "12px", color: "#636e72", fontSize: 14 }}>
-                        {item.explanation || "--"}
-                      </td>
-                    </tr>
-                  ))}
+                  {items.map((item, idx) => {
+                    const label = item.item || item.description || "Unnamed";
+                    const knownCoverage = typeof item.covered === "boolean";
+                    return (
+                      <tr key={idx} style={{ borderBottom: "1px solid #f1f2f6" }}>
+                        <td style={{ padding: "12px", color: "#2d3436" }}>{label}</td>
+                        <td style={{ padding: "12px", textAlign: "right", color: "#2d3436", fontWeight: 600 }}>
+                          ₹{Number(item.amount).toFixed(2)}
+                        </td>
+                        <td style={{ padding: "12px", textAlign: "center" }}>
+                          {knownCoverage ? (
+                            item.covered ? (
+                              <FiCheckCircle size={20} color={SUCCESS} />
+                            ) : (
+                              <FiXCircle size={20} color={DANGER} />
+                            )
+                          ) : (
+                            <span style={{ color: "#b2bec3", fontSize: 13 }}>—</span>
+                          )}
+                        </td>
+                        <td style={{ padding: "12px", color: "#636e72", fontSize: 14 }}>
+                          {item.explanation || (hasCoverage ? "--" : "Coverage analysis unavailable")}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
           )}
 
-          {/* OCR Text (Collapsible) */}
-          {ocrText && (
-            <div style={cardStyle}>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  cursor: "pointer",
-                }}
-                onClick={() => setOcrExpanded(!ocrExpanded)}
-              >
-                <h3 style={{ fontSize: 18, fontWeight: 600, margin: 0, color: "#2d3436" }}>
-                  Raw OCR Text
-                </h3>
-                {ocrExpanded ? <FiChevronUp size={20} /> : <FiChevronDown size={20} />}
-              </div>
-              {ocrExpanded && (
-                <pre
-                  style={{
-                    marginTop: 16,
-                    padding: 16,
-                    background: "#f8f9fa",
-                    borderRadius: 8,
-                    fontSize: 13,
-                    lineHeight: 1.5,
-                    overflowX: "auto",
-                    whiteSpace: "pre-wrap",
-                    color: "#2d3436",
-                  }}
-                >
-                  {ocrText}
-                </pre>
-              )}
-            </div>
-          )}
+
         </div>
       )}
     </div>

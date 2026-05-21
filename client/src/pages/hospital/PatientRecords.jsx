@@ -11,10 +11,10 @@ export default function PatientRecords() {
   const [patients, setPatients] = useState([]);
   const [expanded, setExpanded] = useState(null);
   const [loading, setLoading] = useState(true);
-  // coverage check state keyed by patient id
+
   const [coverageChecking, setCoverageChecking] = useState({});
   const [coverageResults, setCoverageResults] = useState({});
-  // accepted substitutions: { [patientId]: { [originalMed]: replacementMed } }
+
   const [acceptedSubs, setAcceptedSubs] = useState({});
 
   useEffect(() => {
@@ -70,7 +70,7 @@ export default function PatientRecords() {
             const isOpen = expanded === id;
             return (
               <div key={id} style={{ ...card, padding: 0, overflow: "hidden" }}>
-                {/* Patient header row */}
+
                 <div
                   style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 24px", cursor: "pointer" }}
                   onClick={() => toggle(id)}
@@ -105,10 +105,10 @@ export default function PatientRecords() {
                   </div>
                 </div>
 
-                {/* Expanded note detail */}
+
                 {isOpen && note && (
                   <div style={{ borderTop: "1px solid #f0f0f0", padding: "20px 24px", background: "#fafafa" }}>
-                    {/* Clinical summary */}
+
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 20 }}>
                       <div>
                         <p style={{ color: "#636e72", fontSize: 12, margin: "0 0 4px", fontWeight: 600 }}>DIAGNOSIS</p>
@@ -134,7 +134,7 @@ export default function PatientRecords() {
                       </div>
                     </div>
 
-                    {/* Insurance Coverage Check */}
+
                     {p.has_policy && (note.prescriptions || []).length > 0 && (
                       <div style={{ marginBottom: 20 }}>
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
@@ -187,7 +187,7 @@ export default function PatientRecords() {
                                     </div>
                                     <p style={{ margin: 0, fontSize: 12, color: "#636e72" }}>{item.reason}</p>
 
-                                    {/* Suggested alternative for excluded drug */}
+
                                     {!item.is_covered && item.alternative && (() => {
                                       const isAccepted = acceptedSubs[id]?.[item.medication] === item.alternative;
                                       return (
@@ -237,28 +237,48 @@ export default function PatientRecords() {
 
                     {!p.has_policy && (
                       <div style={{ marginBottom: 16, padding: "10px 14px", background: "#ffa50218", border: "1px solid #ffa50260", borderRadius: 8, fontSize: 13, color: "#856404" }}>
-                        No insurance policy uploaded for this patient. Upload one to enable coverage check.
+                        No insurance policy uploaded for this patient. Patient will be billed directly — no insurance claim will be filed.
                       </div>
                     )}
 
-                    <button
-                      onClick={() => navigate(
-                        `/hospital/submit-claim?note_id=${note.id}&patient_id=${id}`,
-                        { state: { substitutions: acceptedSubs[id] || {} } }
-                      )}
-                      disabled={note.already_billed}
-                      style={{
-                        display: "flex", alignItems: "center", gap: 8,
-                        padding: "9px 20px",
-                        background: note.already_billed ? "#aaa" : "#4ecdc4",
-                        color: "#fff", border: "none", borderRadius: 8,
-                        fontSize: 13, fontWeight: 600,
-                        cursor: note.already_billed ? "not-allowed" : "pointer",
-                      }}
-                    >
-                      <FiClipboard size={14} />
-                      {note.already_billed ? "Already Billed" : "Submit Claim for this Note"}
-                    </button>
+                    {p.has_policy ? (
+                      <button
+                        onClick={() => navigate(
+                          `/hospital/submit-claim?note_id=${note.id}&patient_id=${id}`,
+                          { state: { substitutions: acceptedSubs[id] || {} } }
+                        )}
+                        disabled={note.already_billed}
+                        style={{
+                          display: "flex", alignItems: "center", gap: 8,
+                          padding: "9px 20px",
+                          background: note.already_billed ? "#aaa" : "#4ecdc4",
+                          color: "#fff", border: "none", borderRadius: 8,
+                          fontSize: 13, fontWeight: 600,
+                          cursor: note.already_billed ? "not-allowed" : "pointer",
+                        }}
+                      >
+                        <FiClipboard size={14} />
+                        {note.already_billed ? "Already Billed" : "Submit Claim to Insurer"}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => navigate(
+                          `/hospital/daily-bill?note_id=${note.id}&patient_id=${id}`
+                        )}
+                        disabled={note.already_billed}
+                        style={{
+                          display: "flex", alignItems: "center", gap: 8,
+                          padding: "9px 20px",
+                          background: note.already_billed ? "#aaa" : "#ffa502",
+                          color: "#fff", border: "none", borderRadius: 8,
+                          fontSize: 13, fontWeight: 600,
+                          cursor: note.already_billed ? "not-allowed" : "pointer",
+                        }}
+                      >
+                        <FiFileText size={14} />
+                        {note.already_billed ? "Already Billed" : "Bill Patient Directly"}
+                      </button>
+                    )}
                   </div>
                 )}
 

@@ -29,16 +29,13 @@ ROOM_RATES = {
 async def dashboard_stats(current_user: dict = Depends(hospital_role)):
     db = get_db()
 
-    # All patients in the system
     admitted = await db.users.count_documents({"role": "patient"})
 
-    # Notes that have no matching claim yet
     all_notes = await db.clinical_notes.find({}, {"_id": 1}).to_list(500)
     all_note_ids = [str(n["_id"]) for n in all_notes]
     claimed_note_ids = await db.claims.distinct("clinical_note_id")
     pending_billing = len(set(all_note_ids) - set(claimed_note_ids))
 
-    # Claims submitted by this hospital today
     today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
     submitted_today = await db.claims.count_documents({
         "hospital_id": current_user["id"],
@@ -65,7 +62,6 @@ async def list_patients(current_user: dict = Depends(hospital_role)):
         p["id"] = str(p["_id"])
         del p["_id"]
 
-        # Latest clinical note for this patient
         note = await db.clinical_notes.find_one(
             {"patient_id": p["id"]},
             sort=[("created_at", -1)]
@@ -77,7 +73,6 @@ async def list_patients(current_user: dict = Depends(hospital_role)):
         else:
             p["latest_note"] = None
 
-        # Check if policy is uploaded
         policy = await db.policy_documents.find_one({"patient_id": p["id"]})
         p["has_policy"] = bool(policy)
         result.append(p)
@@ -90,7 +85,6 @@ async def list_all_notes(current_user: dict = Depends(hospital_role)):
     """All clinical notes across all doctors — hospital sees everything."""
     db = get_db()
 
-    # Find notes not yet billed
     claimed_note_ids = await db.claims.distinct("clinical_note_id")
     notes = await db.clinical_notes.find(
         {}
@@ -123,15 +117,12 @@ async def submit_claim(
     """Hospital admin finalises billing and submits claim to insurer."""
     db = get_db()
 
-    # Fetch the clinical note to build medication line items
     note = await db.clinical_notes.find_one({"_id": ObjectId(claim.clinical_note_id)})
     if not note:
         raise HTTPException(status_code=404, detail="Clinical note not found")
 
-    # Build substitution lookup from hospital's accepted swaps
     sub_map = {s.original: s.replacement for s in claim.medication_substitutions}
 
-    # Build items from prescriptions, applying substitutions where accepted
     items = []
     for rx in note.get("prescriptions", []):
         original_name = rx.get("medication", "Medication")
@@ -144,7 +135,6 @@ async def submit_claim(
             "category": "medication",
         })
 
-    # Add consultation fee
     items.insert(0, {
         "description": "Doctor Consultation Fee",
         "icd_code": claim.icd_codes[0] if claim.icd_codes else None,
@@ -152,7 +142,6 @@ async def submit_claim(
         "category": "consultation",
     })
 
-    # Add room charges
     room_rate = claim.room_charge_per_day or ROOM_RATES.get(claim.room_type or "general", 1500)
     days = claim.room_days or 1
     if claim.room_type:
@@ -163,7 +152,6 @@ async def submit_claim(
             "category": "room",
         })
 
-    # Add extra charges from hospital admin
     for extra in claim.extra_charges:
         items.append(extra.dict())
 
@@ -215,7 +203,6 @@ async def check_medication_coverage(
     if not patient_id or not note_id:
         raise HTTPException(status_code=400, detail="patient_id and note_id are required")
 
-    # Get patient's policy
     policy_doc = await db.policy_documents.find_one({"patient_id": patient_id})
     if not policy_doc:
         raise HTTPException(status_code=404, detail="No insurance policy found for this patient. Upload one first.")
@@ -223,7 +210,6 @@ async def check_medication_coverage(
     policy_id = policy_doc["policy_id"]
     insurer_name = policy_doc.get("insurer_name", "Unknown Insurer")
 
-    # Get the clinical note
     note = await db.clinical_notes.find_one({"_id": ObjectId(note_id)})
     if not note:
         raise HTTPException(status_code=404, detail="Clinical note not found")
@@ -232,10 +218,8 @@ async def check_medication_coverage(
     if not prescriptions:
         return {"policy_id": policy_id, "insurer_name": insurer_name, "results": []}
 
-    # Build list of medication names
     med_names = [rx.get("medication") or rx.get("drug") or rx.get("name", "Unknown") for rx in prescriptions]
 
-    # ONE RAG query for all meds at once
     policy_context = await query_policy(
         policy_id,
         f"drug formulary covered medications excluded medications Section 3.2 Section 3.3 {' '.join(med_names)}"
@@ -244,7 +228,6 @@ async def check_medication_coverage(
     if not policy_context:
         raise HTTPException(status_code=400, detail="Policy exists but could not be read. Please re-upload the policy PDF.")
 
-    # ONE LLM call checking ALL medications at once
     from services.llm_service import query_llm, _extract_json
     import json
 
@@ -282,20 +265,16 @@ Return ONLY a JSON array (one object per medication, same order as the list abov
     response = await query_llm(prompt)
     print(f"[Coverage] Raw LLM response ({len(response)} chars): {response[:500]}")
 
-    # Parse response — handle array, single object, or code block wrapping
     import re
     parsed = None
     try:
-        # Strip markdown code fences if present
         code_block = re.search(r'```(?:json)?\s*([\s\S]*?)\s*```', response)
         raw = code_block.group(1).strip() if code_block else response.strip()
 
-        # Try 1: JSON array [...]
         bracket = re.search(r'\[[\s\S]*\]', raw)
         if bracket:
             parsed = json.loads(bracket.group())
 
-        # Try 2: single JSON object {...} — wrap in array
         if not parsed:
             brace = re.search(r'\{[\s\S]*\}', raw)
             if brace:
@@ -304,12 +283,10 @@ Return ONLY a JSON array (one object per medication, same order as the list abov
     except (json.JSONDecodeError, AttributeError) as e:
         print(f"[Coverage] JSON parse error: {e}")
 
-    # If parsed is a single result but we need N, apply it to all meds
     if parsed and len(parsed) == 1 and len(med_names) > 1:
         single = parsed[0]
         parsed = [single] * len(med_names)
 
-    # Build results — match parsed array back to prescriptions
     results = []
     for i, rx in enumerate(prescriptions):
         med_name = med_names[i]
@@ -362,7 +339,6 @@ async def check_item_coverage_for_bill(
             detail="No insurance policy found for this patient. Upload the policy PDF first.",
         )
 
-    # ALL items go through RAG + LLM — no guessing, no keyword shortcuts
     policy_context = await query_policy(
         policy_doc["policy_id"],
         f"coverage for {description} drug formulary excluded medications covered items procedures",

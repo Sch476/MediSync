@@ -53,7 +53,7 @@ export default function PatientUploadPolicy() {
         Upload your policy PDF once. Your doctor will automatically see which medicines are covered during your consultation — no manual checks needed.
       </p>
 
-      {/* Existing policy status */}
+
       {existing && (
         <div style={{ ...card, marginBottom: 24, background: "#4ecdc418", border: "1px solid #4ecdc4" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -68,7 +68,7 @@ export default function PatientUploadPolicy() {
         </div>
       )}
 
-      {/* Upload form */}
+
       <div style={card}>
         <h3 style={{ color: "#333", fontSize: 16, marginTop: 0, marginBottom: 20 }}>
           {existing ? "Update Policy" : "Upload Policy PDF"}

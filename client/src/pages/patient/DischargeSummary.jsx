@@ -1,7 +1,62 @@
 import { useState, useEffect } from "react";
 import api from "../../utils/api";
 import toast from "react-hot-toast";
-import { FiGlobe, FiVolume2, FiDownload, FiSend } from "react-icons/fi";
+import { FiGlobe, FiVolume2, FiDownload, FiSend, FiFileText } from "react-icons/fi";
+
+const SAMPLE_DISCHARGE = `APOLLO CITY HOSPITAL — DISCHARGE SUMMARY
+
+Patient: Priya Patel | Age: 32/F | MRN: 78432
+Admission: 12-Apr-2024 | Discharge: 15-Apr-2024
+Treating Consultant: Dr. Rajesh Kumar, MD (Internal Medicine)
+
+CHIEF COMPLAINT:
+Patient presented to the ED with a 3-day history of productive cough, pyrexia (Tmax 39.2°C), pleuritic chest pain, and progressive dyspnea on exertion.
+
+DIAGNOSIS:
+1. Community-Acquired Pneumonia (CAP) — right lower lobe (J18.9)
+2. Mild hypoxemia secondary to consolidation
+3. Pre-existing controlled essential hypertension (I10)
+
+INVESTIGATIONS:
+- CXR (PA view): right lower lobe consolidation
+- CBC: WBC 14.2 x10^9/L with neutrophilia
+- CRP: 142 mg/L
+- Sputum C&S: Streptococcus pneumoniae, sensitive to amoxicillin
+- ABG: pH 7.41, PaO2 68 mmHg on room air, SpO2 92%
+
+TREATMENT GIVEN:
+- IV Ceftriaxone 1g BD x 3 days, stepped down to PO Amoxicillin-Clavulanate
+- IV fluids (NS @ 100 mL/hr) for hydration
+- Nebulization with salbutamol q6h PRN
+- Paracetamol 650mg PO q6h for antipyresis
+- Continued Amlodipine 5mg OD for HTN
+
+DISCHARGE MEDICATIONS:
+1. Tab. Amoxicillin-Clavulanate 625mg PO BD x 7 days (complete the course)
+2. Tab. Paracetamol 650mg PO PRN for fever/pain (max QDS)
+3. Tab. Amlodipine 5mg PO OD (continue as before)
+4. Syrup Ambroxol 10mL PO TDS x 5 days
+5. Multivitamin OD x 14 days
+
+ADVICE ON DISCHARGE:
+- Strict bed rest x 48 hrs, gradual ambulation thereafter
+- Adequate hydration (2-3 L/day)
+- Avoid smoking and second-hand smoke exposure
+- Steam inhalation BD
+- Monitor temperature at home; return if fever persists beyond 72 hours
+- DVT prophylaxis: ambulation; no anticoagulation indicated
+- Diet: high-protein, soft-bland initially
+
+RED FLAG SYMPTOMS — return to ED immediately if:
+- Worsening dyspnea or new orthopnea
+- Hemoptysis
+- Recurrence of fever > 38.5°C
+- Chest pain or palpitations
+- Confusion or altered sensorium
+
+FOLLOW-UP:
+- OPD review with Dr. Rajesh Kumar in 7 days with repeat CBC and CXR
+- BP monitoring at home, log daily readings`;
 
 const cardStyle = {
   background: "#fff",
@@ -74,11 +129,25 @@ export default function DischargeSummary() {
         Paste your discharge summary below to get a simplified version and translation with audio.
       </p>
 
-      {/* Input Area */}
+
       <div style={{ ...cardStyle, marginBottom: 24 }}>
-        <label style={{ display: "block", fontWeight: 600, marginBottom: 8, color: "#2d3436" }}>
-          Discharge Summary Text
-        </label>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+          <label style={{ fontWeight: 600, color: "#2d3436" }}>
+            Discharge Summary Text
+          </label>
+          <button
+            type="button"
+            onClick={() => setSummaryText(SAMPLE_DISCHARGE)}
+            style={{
+              display: "flex", alignItems: "center", gap: 6,
+              padding: "5px 12px", background: "#fffbe6",
+              color: "#b8860b", border: "1px dashed #ffd666", borderRadius: 6,
+              fontSize: 12, fontWeight: 600, cursor: "pointer",
+            }}
+          >
+            <FiFileText size={12} /> Load Sample
+          </button>
+        </div>
         <textarea
           value={summaryText}
           onChange={(e) => setSummaryText(e.target.value)}
@@ -158,7 +227,7 @@ export default function DischargeSummary() {
         </div>
       </div>
 
-      {/* Loading */}
+
       {loading && (
         <div style={{ textAlign: "center", marginBottom: 24 }}>
           <div
@@ -177,10 +246,10 @@ export default function DischargeSummary() {
         </div>
       )}
 
-      {/* Results */}
+
       {result && (
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-          {/* Simplified Text */}
+
           {result.simplified_text && (
             <div style={{ ...cardStyle, borderLeft: `4px solid ${PRIMARY}` }}>
               <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 12, color: "#2d3436" }}>
@@ -192,7 +261,7 @@ export default function DischargeSummary() {
             </div>
           )}
 
-          {/* Translated Text */}
+
           {result.translated_text && (
             <div style={{ ...cardStyle, borderLeft: "4px solid #a55eea" }}>
               <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 12, color: "#2d3436" }}>
@@ -212,7 +281,7 @@ export default function DischargeSummary() {
             </div>
           )}
 
-          {/* Audio Player */}
+
           {audioUrl && (
             <div style={{ ...cardStyle, display: "flex", flexDirection: "column", gap: 16 }}>
               <h3 style={{ fontSize: 18, fontWeight: 600, margin: 0, color: "#2d3436" }}>

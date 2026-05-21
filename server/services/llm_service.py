@@ -19,10 +19,8 @@ async def query_llm(prompt: str, max_retries: int = 3) -> str:
     elif settings.HF_API_TOKEN:
         return await _query_huggingface(prompt, max_retries)
     elif settings.GEMINI_API_KEY:
-        # Fallback to Gemini if HF token not set
         return await _query_gemini(prompt, max_retries)
     else:
-        # No API keys configured — return mock response for demo
         return _mock_llm_response(prompt)
 
 
@@ -31,7 +29,6 @@ async def _query_huggingface(prompt: str, max_retries: int) -> str:
     api_url = f"https://api-inference.huggingface.co/models/{settings.HF_MODEL}"
     headers = {"Authorization": f"Bearer {settings.HF_API_TOKEN}"}
 
-    # Format as instruction for Mistral-style models
     payload = {
         "inputs": f"<s>[INST] {prompt} [/INST]",
         "parameters": {
@@ -52,13 +49,11 @@ async def _query_huggingface(prompt: str, max_retries: int) -> str:
                 return str(result)
 
             elif response.status_code == 503:
-                # Model is loading — wait and retry
                 wait_time = response.json().get("estimated_time", 20)
                 await asyncio.sleep(min(wait_time, 30))
                 continue
 
             elif response.status_code == 429:
-                # Rate limited — exponential backoff
                 await asyncio.sleep(2 ** attempt * 5)
                 continue
 
@@ -73,7 +68,6 @@ async def _query_huggingface(prompt: str, max_retries: int) -> str:
             print(f"HF API exception: {e}")
             break
 
-    # Fallback to Gemini if HF fails
     if settings.GEMINI_API_KEY:
         return await _query_gemini(prompt, max_retries)
     return _mock_llm_response(prompt)
@@ -99,22 +93,19 @@ async def _query_gemini(prompt: str, max_retries: int) -> str:
             "https://generativelanguage.googleapis.com/v1beta/models/"
             f"{model}:generateContent?key={settings.GEMINI_API_KEY}"
         )
-        for attempt in range(2):  # 2 retries per model, then move on
+        for attempt in range(2):
             try:
                 response = requests.post(url, json=payload, timeout=60)
 
                 if response.status_code == 200:
                     data = response.json()
-                    # Guard against empty response (no parts — e.g. safety block)
                     parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
                     if parts and parts[0].get("text"):
                         return parts[0]["text"].strip()
-                    # Empty response — try next model
                     print(f"Gemini {model} returned empty content, trying next model")
                     break
 
                 elif response.status_code in (429, 503):
-                    # Short backoff — move to next model fast
                     wait = [3, 6, 10][attempt]
                     label = "rate limited" if response.status_code == 429 else "overloaded"
                     print(f"Gemini {model} {label} — waiting {wait}s (attempt {attempt+1}/3)")
@@ -123,11 +114,11 @@ async def _query_gemini(prompt: str, max_retries: int) -> str:
 
                 elif response.status_code == 404:
                     print(f"Gemini {model} not available — skipping")
-                    break  # skip to next model, don't retry
+                    break
 
                 else:
                     print(f"Gemini {model} HTTP {response.status_code}: {response.text[:150]}")
-                    break  # try next model
+                    break
 
             except Exception as e:
                 print(f"Gemini {model} error: {e}")
@@ -141,11 +132,8 @@ def _mock_llm_response(prompt: str) -> str:
     prompt_lower = prompt.lower()
 
     if "therapeutically equivalent" in prompt_lower or ("coverage" in prompt_lower and "formulary" in prompt_lower):
-        # Coverage check mock — handles both single and batch (array) format
-        # Check if this is a batch request (numbered list like "1. Telmisartan\n2. Amlodipine")
         numbered = re.findall(r'\d+\.\s+(\S+)', prompt)
         if len(numbered) > 1:
-            # Batch mock — return array, one per medication
             results = []
             for med in numbered:
                 med_l = med.lower()
@@ -157,7 +145,6 @@ def _mock_llm_response(prompt: str) -> str:
                     results.append({"medication": med, "is_covered": True, "reason": "Listed in covered formulary under Section 3.2.", "alternative": None, "alt_reason": None})
             return json.dumps(results)
 
-        # Single medication check
         is_sucralfate = "sucralfate" in prompt_lower
         is_multivitamin = "multivitamin" in prompt_lower or "neurobion" in prompt_lower
         if is_sucralfate:
@@ -216,7 +203,6 @@ def _mock_llm_response(prompt: str) -> str:
 
 def _extract_json(text: str) -> Optional[dict]:
     """Extract JSON from LLM response, handling markdown code blocks."""
-    # Strip ```json ... ``` wrapper — extract everything between the fences
     code_block = re.search(r'```(?:json)?\s*([\s\S]*?)\s*```', text)
     if code_block:
         try:
@@ -224,7 +210,6 @@ def _extract_json(text: str) -> Optional[dict]:
         except json.JSONDecodeError:
             pass
 
-    # Fallback: find the outermost { ... } in raw text (greedy)
     brace_match = re.search(r'\{[\s\S]*\}', text)
     if brace_match:
         try:
@@ -283,10 +268,8 @@ Return ONLY the JSON, no other text."""
 
     parsed = _extract_json(response)
     if parsed:
-        # Normalise symptoms — LLM sometimes returns a string instead of a list
         if isinstance(parsed.get("symptoms"), str):
             parsed["symptoms"] = [s.strip() for s in parsed["symptoms"].split(",") if s.strip()]
-        # Post-process: fill in what Gemini often skips
         parsed = _post_process_structured_note(parsed, transcript)
         return parsed
 
@@ -304,8 +287,6 @@ def _post_process_structured_note(parsed: dict, transcript: str) -> dict:
     """Rule-based post-processing to catch what Gemini skips."""
     t = transcript.lower()
 
-    # ── Stopped medications ──
-    # Detect "stop X", "discontinue X", "rather than X" patterns
     stop_patterns = [
         r'stop\s+(\w[\w\s\-]*?)(?:\s+(?:immediately|as|because|since|due)|\.|,)',
         r'discontinue\s+(\w[\w\s\-]*?)(?:\s+|\.|,)',
@@ -316,8 +297,6 @@ def _post_process_structured_note(parsed: dict, transcript: str) -> dict:
         for match in re.finditer(pattern, t):
             stopped_names.add(match.group(1).strip())
 
-    # Detect "currently on X", "already taking X" → existing meds (is_new = false)
-    # Capture the full clause after "currently on" to handle "X and Y" lists
     existing_clause_patterns = [
         r'currently\s+on\s+([\w\s\-,]+?)(?:\.\s|she\s|he\s|i\s+am\s|stop)',
         r'already\s+(?:on|taking)\s+([\w\s\-,]+?)(?:\.\s|she\s|he\s|stop)',
@@ -326,23 +305,18 @@ def _post_process_structured_note(parsed: dict, transcript: str) -> dict:
     for pattern in existing_clause_patterns:
         for match in re.finditer(pattern, t):
             clause = match.group(1)
-            # Split by "and" to get individual meds
             for part in re.split(r'\s+and\s+', clause):
-                # Extract just the drug name (first word before dose)
                 drug = re.match(r'(\w[\w\-]*)', part.strip())
                 if drug:
                     existing_names.add(drug.group(1).strip())
 
-    # Apply stopped/is_new flags to prescriptions
     for rx in parsed.get("prescriptions", []):
         med = (rx.get("medication") or "").lower()
-        # Mark stopped
         if not rx.get("stopped"):
             for name in stopped_names:
                 if name in med or med in name:
                     rx["stopped"] = True
                     break
-        # Mark is_new
         if rx.get("is_new") is None or rx.get("is_new") is False:
             is_existing = any(name in med for name in existing_names)
             if not is_existing and not rx.get("stopped"):
@@ -350,7 +324,6 @@ def _post_process_structured_note(parsed: dict, transcript: str) -> dict:
             elif is_existing:
                 rx["is_new"] = False
 
-    # ── Safety flags ──
     safety_flags = parsed.get("safety_flags") or []
     avoid_patterns = [
         r'(?:do\s+not\s+give|don\'?t\s+(?:give|use|prescribe))\s+([\w\s\-]+?)(?:\s+(?:as|because|since|due|—|-))',
@@ -360,7 +333,6 @@ def _post_process_structured_note(parsed: dict, transcript: str) -> dict:
     for pattern in avoid_patterns:
         for match in re.finditer(pattern, t):
             drug = match.group(1).strip()
-            # Skip non-drug "avoid" phrases (foods, etc.)
             if any(w in drug for w in ["food", "banana", "coconut", "rich"]):
                 continue
             drug_key = drug.lower()
@@ -378,7 +350,6 @@ def _post_process_structured_note(parsed: dict, transcript: str) -> dict:
     if safety_flags:
         parsed["safety_flags"] = safety_flags
 
-    # ── Recommended tests ──
     rec_tests = parsed.get("recommended_tests") or []
     test_patterns = [
         r'(?:order|advise|recommend|do|run|get|send for|repeat)\s+(?:an?\s+)?(?:urgent\s+)?([\w\s\-]+?(?:test|x[\-\s]?ray|ultrasound|scan|culture|microscopy|panel|profile|monitoring|referral|cbc|hba1c|ecg|echo))',
@@ -390,12 +361,10 @@ def _post_process_structured_note(parsed: dict, transcript: str) -> dict:
     for pattern in test_patterns:
         for match in re.finditer(pattern, t):
             test = match.group(1).strip()
-            # Clean up leading conjunctions
             test = re.sub(r'^(?:and|or|also|then)\s+', '', test, flags=re.IGNORECASE).strip().title()
             if len(test) > 3 and not any(test.lower() in existing.lower() or existing.lower() in test.lower() for existing in rec_tests):
                 rec_tests.append(test)
 
-    # Also catch explicit mentions like "blood sugar monitoring four times a day"
     monitoring_patterns = [
         r'(blood\s+sugar\s+monitoring[\w\s]*?)(?:\.|,|$)',
         r'(platelet\s+(?:count\s+)?monitoring[\w\s]*?)(?:\.|,|$)',

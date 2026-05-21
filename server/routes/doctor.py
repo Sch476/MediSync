@@ -19,7 +19,6 @@ from services.rag_service import index_policy_pdf, check_medication_coverage, qu
 
 router = APIRouter()
 
-# All doctor routes require doctor role
 doctor_role = require_role(["doctor"])
 
 
@@ -39,10 +38,8 @@ async def structure_transcript(
     """
     db = get_db()
 
-    # Step 1: LLM structures the transcript
     structured = await structure_clinical_note(transcript)
 
-    # Step 2: Check prescription coverage via RAG (if policy uploaded)
     policy_warnings = []
     prescriptions = []
 
@@ -71,7 +68,6 @@ async def structure_transcript(
 
         prescriptions.append(prescription)
 
-    # Step 3: Build FHIR-compliant encounter JSON
     fhir_encounter = _build_fhir_encounter(
         doctor=current_user,
         patient_id=patient_id,
@@ -80,7 +76,6 @@ async def structure_transcript(
         prescriptions=prescriptions,
     )
 
-    # Step 4: Save clinical note to MongoDB
     note_doc = {
         "doctor_id": current_user["id"],
         "doctor_name": current_user["full_name"],
@@ -104,7 +99,7 @@ async def structure_transcript(
     return {
         "id": str(result.inserted_id),
         **note_doc,
-        "_id": None,  # Exclude MongoDB _id
+        "_id": None,
     }
 
 
@@ -122,7 +117,6 @@ async def upload_policy_pdf(
     if not file.filename.endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files are supported")
 
-    # Save uploaded file
     os.makedirs("uploads/policies", exist_ok=True)
     file_path = f"uploads/policies/{policy_id}_{file.filename}"
 
@@ -130,13 +124,11 @@ async def upload_policy_pdf(
         content = await file.read()
         f.write(content)
 
-    # Index in ChromaDB
     result = await index_policy_pdf(file_path, policy_id, insurer_name)
 
     if "error" in result:
         raise HTTPException(status_code=400, detail=result["error"])
 
-    # Save policy metadata to MongoDB
     db = get_db()
     await db.policy_documents.update_one(
         {"policy_id": policy_id},
@@ -193,7 +185,6 @@ async def list_patients(current_user: dict = Depends(doctor_role)):
     for p in patients:
         p["id"] = str(p["_id"])
         del p["_id"]
-        # Auto-attach policy_id so doctor never needs to type it manually
         p["policy_id"] = f"patient_{p['id']}"
 
     return patients

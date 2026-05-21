@@ -2,40 +2,21 @@ import { useState, useEffect } from "react";
 import api from "../../utils/api";
 import toast from "react-hot-toast";
 import {
-  FiPlus, FiTrash2, FiSend, FiCheckCircle, FiXCircle, FiRefreshCw, FiZap,
+  FiPlus, FiTrash2, FiSend, FiCheckCircle, FiXCircle, FiRefreshCw, FiZap, FiPlayCircle,
 } from "react-icons/fi";
 
 const CATEGORIES = ["medication", "procedure", "lab", "room", "consultation", "other"];
-const CONSULT_FEE = 600;
-const MED_UNIT_COST = 150;
 
-function buildItemsFromNote(note) {
-  const items = [];
-
-  // Consultation fee
-  items.push({
-    _uid: Date.now() + Math.random(),
-    description: "Doctor Consultation Fee",
-    category: "consultation",
-    amount: CONSULT_FEE,
-    auto: true,
-    checking: false, checked: false, is_covered: null, reason: "", alternative: null,
-  });
-
-  // One row per prescription
-  (note.prescriptions || []).forEach((rx, i) => {
-    items.push({
-      _uid: Date.now() + i + 1 + Math.random(),
-      description: rx.medication || rx.drug || rx.name || "Medication",
-      category: "medication",
-      amount: MED_UNIT_COST,
-      auto: true,
-      checking: false, checked: false, is_covered: null, reason: "", alternative: null,
-    });
-  });
-
-  return items;
-}
+const DEMO_BILL_ITEMS = [
+  { description: "Doctor Consultation Fee", category: "consultation", amount: 600 },
+  { description: "Room Charges (General, 1 day)", category: "room", amount: 1500 },
+  { description: "Nursing Care", category: "other", amount: 300 },
+  { description: "CBC - Complete Blood Count", category: "lab", amount: 400 },
+  { description: "IV Fluids - Normal Saline", category: "procedure", amount: 250 },
+  { description: "Paracetamol 650mg", category: "medication", amount: 150 },
+  { description: "Ondansetron 4mg", category: "medication", amount: 150 },
+  { description: "ECG", category: "procedure", amount: 350 },
+];
 
 export default function DailyBill() {
   const [patients, setPatients]       = useState([]);
@@ -51,15 +32,11 @@ export default function DailyBill() {
     api.get("/hospital/patients").then((r) => setPatients(r.data)).catch(() => {});
   }, []);
 
-  // Auto-populate from clinical note when patient changes
+
   const onPatientChange = (patientId) => {
     const p = patients.find((x) => (x.id || x._id) === patientId) || null;
     setSelectedPatient(p);
     setItems([]);
-    if (p?.latest_note) {
-      setItems(buildItemsFromNote(p.latest_note));
-      toast.success(`Loaded ${(p.latest_note.prescriptions || []).length + 1} items from latest clinical note`);
-    }
   };
 
   const checkedItems  = items.filter((i) => i.checked);
@@ -70,13 +47,13 @@ export default function DailyBill() {
   const anyChecking   = items.some((i) => i.checking);
   const allChecked    = items.length > 0 && items.every((i) => i.checked);
 
-  // Check all unchecked items in parallel
+
   const checkAllCoverage = async () => {
     if (!selectedPatient) return toast.error("Select a patient first");
     const unchecked = items.filter((i) => !i.checked && !i.checking);
     if (unchecked.length === 0) return toast("All items already checked");
 
-    // Mark them all as checking at once
+
     setCheckingAll(true);
     setItems((prev) =>
       prev.map((i) => (!i.checked && !i.checking ? { ...i, checking: true } : i))
@@ -114,7 +91,7 @@ export default function DailyBill() {
     setCheckingAll(false);
   };
 
-  // Add a single extra item (still checks individually)
+
   const addExtraItem = () => {
     if (!form.description.trim() || !form.amount) return toast.error("Fill in description and amount");
     if (!selectedPatient) return toast.error("Select a patient first");
@@ -134,6 +111,21 @@ export default function DailyBill() {
   };
 
   const removeItem = (uid) => setItems((prev) => prev.filter((i) => i._uid !== uid));
+
+  const generateDemoBill = () => {
+    if (!selectedPatient) return toast.error("Select a patient first");
+    if (items.length > 0 && !window.confirm(`Replace current ${items.length} item(s) with a demo bill?`)) return;
+    const demo = DEMO_BILL_ITEMS.map((it, idx) => ({
+      _uid: Date.now() + idx + Math.random(),
+      description: it.description,
+      category: it.category,
+      amount: it.amount,
+      auto: true,
+      checking: false, checked: false, is_covered: null, reason: "", alternative: null,
+    }));
+    setItems(demo);
+    toast.success(`Loaded ${demo.length} demo items — run coverage check next`);
+  };
 
   const handleSubmit = async () => {
     if (!selectedPatient) return toast.error("Select a patient");
@@ -166,7 +158,7 @@ export default function DailyBill() {
     }
   };
 
-  // ── Success screen ──────────────────────────────────────────────────
+
   if (submitted) {
     return (
       <div style={{ padding: 32, maxWidth: 600, margin: "0 auto", textAlign: "center" }}>
@@ -210,15 +202,15 @@ export default function DailyBill() {
     );
   }
 
-  // ── Main form ───────────────────────────────────────────────────────
+
   return (
     <div style={{ padding: 32, maxWidth: 960, margin: "0 auto" }}>
       <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 4, color: "#2d3436" }}>Daily Bill</h1>
       <p style={{ color: "#636e72", fontSize: 15, marginBottom: 28 }}>
-        Select a patient — today's items are auto-loaded from their latest clinical note. Add any extras, then run one coverage check to split the bill.
+        Select a patient and add today's charges line by line. Run a coverage check to split the bill between insurer and patient.
       </p>
 
-      {/* Patient + Date */}
+
       <div style={{ ...card, marginBottom: 20 }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
           <div>
@@ -241,36 +233,44 @@ export default function DailyBill() {
         </div>
 
         {selectedPatient && (
-          <div style={{ marginTop: 12, padding: "8px 12px", background: "#f8f9fa", borderRadius: 8, fontSize: 13, color: "#636e72", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span>
-              Policy: <strong>{selectedPatient.policy_number || "None"}</strong>
-              &nbsp;·&nbsp;
-              Insurer: <strong>{selectedPatient.insurer_name || "None"}</strong>
-              {!selectedPatient.has_policy && (
-                <span style={{ color: "#ffa502", marginLeft: 10 }}>⚠ No policy uploaded — medication checks will default to covered</span>
-              )}
-            </span>
-            {selectedPatient.latest_note && (
-              <span style={{ fontSize: 12, color: "#4ecdc4", fontWeight: 600 }}>
-                Note: {selectedPatient.latest_note.diagnosis}
+          <>
+            <div style={{ marginTop: 12, padding: "8px 12px", background: "#f8f9fa", borderRadius: 8, fontSize: 13, color: "#636e72", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span>
+                Policy: <strong>{selectedPatient.policy_number || "None"}</strong>
+                &nbsp;·&nbsp;
+                Insurer: <strong>{selectedPatient.insurer_name || "None"}</strong>
+                {!selectedPatient.has_policy && (
+                  <span style={{ color: "#ffa502", marginLeft: 10 }}>⚠ No policy uploaded — medication checks will default to covered</span>
+                )}
               </span>
-            )}
-          </div>
+              {selectedPatient.latest_note && (
+                <span style={{ fontSize: 12, color: "#4ecdc4", fontWeight: 600 }}>
+                  Note: {selectedPatient.latest_note.diagnosis}
+                </span>
+              )}
+            </div>
+            <div style={{ marginTop: 12, padding: "10px 14px", background: "#fffbe6", border: "1px dashed #ffd666", borderRadius: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ fontSize: 13, color: "#7a6a3a" }}>
+                Testing only — fill the bill with 8 standard items.
+              </span>
+              <button
+                onClick={generateDemoBill}
+                style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", background: "#fff", color: "#b8860b", border: "1px solid #ffd666", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}
+              >
+                <FiPlayCircle size={13} /> {items.length === 0 ? "Generate Demo Bill" : "Replace with Demo Bill"}
+              </button>
+            </div>
+          </>
         )}
       </div>
 
-      {/* Items Table */}
+
       {items.length > 0 && (
         <div style={{ ...card, padding: 0, overflow: "hidden", marginBottom: 20 }}>
-          {/* Table header with Check All button */}
+
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 20px", borderBottom: "1px solid #f0f0f0", background: "#fafafa" }}>
             <span style={{ fontSize: 14, fontWeight: 600, color: "#2d3436" }}>
               {items.length} item{items.length !== 1 ? "s" : ""}
-              {selectedPatient?.latest_note && (
-                <span style={{ fontSize: 12, color: "#aaa", fontWeight: 400, marginLeft: 8 }}>
-                  (auto-loaded from clinical note)
-                </span>
-              )}
             </span>
             {!allChecked && (
               <button
@@ -383,11 +383,11 @@ export default function DailyBill() {
         </div>
       )}
 
-      {/* Add Extra Item */}
+
       {selectedPatient && (
         <div style={{ ...card, marginBottom: 20 }}>
           <h3 style={{ fontSize: 14, fontWeight: 600, color: "#636e72", margin: "0 0 12px", textTransform: "uppercase", letterSpacing: 0.5 }}>
-            Add Extra Item
+            Add Item
           </h3>
           <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 130px auto", gap: 10, alignItems: "end" }}>
             <div>
@@ -427,7 +427,7 @@ export default function DailyBill() {
         </div>
       )}
 
-      {/* Split Summary */}
+
       {checkedItems.length > 0 && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24 }}>
           <div style={{ background: "#f0fffe", border: "1px solid #4ecdc440", borderRadius: 12, padding: 20 }}>

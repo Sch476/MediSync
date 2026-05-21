@@ -9,10 +9,8 @@ from typing import Optional, List
 from config import settings
 from database import get_db
 
-# Password hashing with bcrypt
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# JWT bearer scheme
 security = HTTPBearer()
 
 

@@ -142,7 +142,7 @@ export default function ClinicalNotes() {
                     {isExpanded && (
                       <tr style={{ background: hasWarnings(note) ? "#fffbe6" : "#fafafa" }}>
                         <td colSpan={6} style={{ padding: "16px 24px", borderBottom: "1px solid #f0f0f0" }}>
-                          {/* Warnings */}
+
                           {warnings.length > 0 && (
                             <div style={{ marginBottom: 16 }}>
                               {warnings.map((w, wi) => (
@@ -168,7 +168,7 @@ export default function ClinicalNotes() {
                             </div>
                           )}
 
-                          {/* Symptoms */}
+
                           {structured.symptoms && structured.symptoms.length > 0 && (
                             <div style={{ marginBottom: 12 }}>
                               <p style={{ color: "#666", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Symptoms</p>
@@ -192,7 +192,7 @@ export default function ClinicalNotes() {
                             </div>
                           )}
 
-                          {/* Safety Flags */}
+
                           {(structured.safety_flags || []).length > 0 && (
                             <div style={{ marginBottom: 12, background: "#fff5f5", border: "1px solid #ff6b6b30", borderRadius: 8, padding: "10px 14px" }}>
                               <p style={{ color: "#ff6b6b", fontSize: 12, fontWeight: 600, margin: "0 0 6px" }}>Safety Flags</p>
@@ -204,7 +204,7 @@ export default function ClinicalNotes() {
                             </div>
                           )}
 
-                          {/* Recommended Tests */}
+
                           {(structured.recommended_tests || []).length > 0 && (
                             <div style={{ marginBottom: 12 }}>
                               <p style={{ color: "#666", fontSize: 12, fontWeight: 600, marginBottom: 6 }}>Recommended Tests</p>
@@ -218,7 +218,7 @@ export default function ClinicalNotes() {
                             </div>
                           )}
 
-                          {/* Prescriptions */}
+
                           {prescriptions.length > 0 && (
                             <div style={{ marginBottom: 12 }}>
                               <p style={{ color: "#666", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Prescriptions</p>
@@ -249,7 +249,7 @@ export default function ClinicalNotes() {
                             </div>
                           )}
 
-                          {/* FHIR JSON */}
+
                           {(structured.fhir || note.fhir) && (
                             <div>
                               <p style={{ color: "#666", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>FHIR Resource</p>

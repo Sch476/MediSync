@@ -29,7 +29,7 @@ export default function UploadPolicy() {
       const res = await api.get("/doctor/policies");
       setPolicies(res.data?.policies || res.data || []);
     } catch {
-      // Endpoint may not exist yet — silently ignore
+
     } finally {
       setLoadingPolicies(false);
     }
@@ -76,13 +76,13 @@ export default function UploadPolicy() {
       setUploadResult(res.data);
       toast.success("Policy uploaded successfully");
 
-      // Reset form
+
       setPolicyId("");
       setInsurerName("");
       setFile(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
 
-      // Refresh policies list
+
       fetchPolicies();
     } catch (err) {
       toast.error(err.response?.data?.detail || "Failed to upload policy");
@@ -98,7 +98,7 @@ export default function UploadPolicy() {
         Upload insurance policy PDFs for AI-powered claim validation
       </p>
 
-      {/* Upload Form */}
+
       <div style={{ ...card, marginBottom: 24 }}>
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: 16 }}>
@@ -215,7 +215,7 @@ export default function UploadPolicy() {
         </form>
       </div>
 
-      {/* Upload Result */}
+
       {uploadResult && (
         <div
           style={{
@@ -254,7 +254,7 @@ export default function UploadPolicy() {
         </div>
       )}
 
-      {/* Previously Uploaded Policies */}
+
       <div style={card}>
         <h2 style={{ color: "#333", fontSize: 18, marginTop: 0, marginBottom: 16 }}>Uploaded Policies</h2>
         {loadingPolicies ? (

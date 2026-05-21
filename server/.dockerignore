@@ -1,0 +1,12 @@
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.DS_Store
+chroma_data/
+audio_files/
+uploads/
+.env
+.env.local
+*.log

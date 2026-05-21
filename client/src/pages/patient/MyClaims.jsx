@@ -96,7 +96,7 @@ export default function MyClaims() {
 
             return (
               <div key={claimId} style={{ ...cardStyle, transition: "box-shadow 0.2s" }}>
-                {/* Claim Header */}
+
                 <div
                   style={{
                     display: "flex",
@@ -156,7 +156,7 @@ export default function MyClaims() {
                   </div>
                 </div>
 
-                {/* Expandable Claim Items */}
+
                 {isExpanded && items.length > 0 && (
                   <div
                     style={{

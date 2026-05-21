@@ -14,7 +14,6 @@ from routes import auth, doctor, insurer, patient, hospital
 async def lifespan(app: FastAPI):
     """Startup and shutdown events."""
     await connect_db()
-    # Ensure upload/audio directories exist
     os.makedirs("uploads", exist_ok=True)
     os.makedirs("audio_files", exist_ok=True)
     yield
@@ -28,20 +27,18 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS — allow React dev server
+cors_origins = [o.strip() for o in settings.CORS_ORIGINS.split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=cors_origins or ["*"],
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Serve generated audio files
 app.mount("/audio", StaticFiles(directory="audio_files"), name="audio")
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
-# Register route modules
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(doctor.router, prefix="/api/doctor", tags=["Doctor - Smart Scribe"])
 app.include_router(insurer.router, prefix="/api/insurer", tags=["Insurer - Clearinghouse"])

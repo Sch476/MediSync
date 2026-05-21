@@ -15,9 +15,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-# Create directories for generated files
-RUN mkdir -p /app/audio_files /app/chroma_data /app/uploads
+RUN mkdir -p /app/audio_files /app/chroma_data /app/uploads && \
+    chmod -R 777 /app/audio_files /app/chroma_data /app/uploads
 
-EXPOSE 8000
+EXPOSE 7860
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "7860"]

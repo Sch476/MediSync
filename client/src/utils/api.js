@@ -1,7 +1,4 @@
-/**
- * Axios instance configured for MediSync API.
- * Automatically attaches JWT token from localStorage.
- */
+
 import axios from "axios";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
@@ -11,7 +8,7 @@ const api = axios.create({
   headers: { "Content-Type": "application/json" },
 });
 
-// Attach JWT token to every request
+
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
   if (token) {
@@ -20,7 +17,7 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Handle 401 responses — redirect to login
+
 api.interceptors.response.use(
   (response) => response,
   (error) => {

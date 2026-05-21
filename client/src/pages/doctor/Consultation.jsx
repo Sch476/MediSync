@@ -56,7 +56,7 @@ export default function Consultation() {
 
     recognition.onresult = (event) => {
       let interimTranscript = "";
-      // Only process NEW results starting from event.resultIndex
+
       for (let i = event.resultIndex; i < event.results.length; i++) {
         if (event.results[i].isFinal) {
           finalTranscriptRef.current += event.results[i][0].transcript + " ";
@@ -64,7 +64,7 @@ export default function Consultation() {
           interimTranscript += event.results[i][0].transcript;
         }
       }
-      // Show finalized text + current interim at the end
+
       setTranscript(finalTranscriptRef.current + interimTranscript);
     };
 
@@ -136,7 +136,7 @@ export default function Consultation() {
         AI-powered consultation note generator
       </p>
 
-      {/* Patient Selector */}
+
       <div style={{ ...card, marginBottom: 20 }}>
         <h3 style={{ color: "#333", fontSize: 16, marginTop: 0, marginBottom: 12 }}>Select Patient</h3>
         <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
@@ -172,7 +172,7 @@ export default function Consultation() {
         </div>
       </div>
 
-      {/* Speech-to-Text */}
+
       <div style={{ ...card, marginBottom: 20 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
           <h3 style={{ color: "#333", fontSize: 16, margin: 0 }}>Consultation Transcript</h3>
@@ -253,15 +253,15 @@ export default function Consultation() {
         </div>
       </div>
 
-      {/* Results */}
+
       {result && (
         <>
 
-          {/* Structured Note */}
+
           <div style={{ ...card, marginBottom: 20 }}>
             <h3 style={{ color: "#333", fontSize: 16, marginTop: 0, marginBottom: 16 }}>Structured Note</h3>
 
-            {/* Symptoms */}
+
             {symptoms.length > 0 && (
               <div style={{ marginBottom: 16 }}>
                 <p style={{ color: "#666", fontSize: 13, marginBottom: 8, fontWeight: 600 }}>Symptoms</p>
@@ -285,7 +285,7 @@ export default function Consultation() {
               </div>
             )}
 
-            {/* Diagnosis */}
+
             {structuredNote.diagnosis && (
               <div style={{ marginBottom: 16 }}>
                 <p style={{ color: "#666", fontSize: 13, marginBottom: 4, fontWeight: 600 }}>Diagnosis</p>
@@ -293,7 +293,7 @@ export default function Consultation() {
               </div>
             )}
 
-            {/* ICD Codes */}
+
             {icdCodes.length > 0 && (
               <div style={{ marginBottom: 16 }}>
                 <p style={{ color: "#666", fontSize: 13, marginBottom: 8, fontWeight: 600 }}>ICD Codes</p>
@@ -317,7 +317,7 @@ export default function Consultation() {
               </div>
             )}
 
-            {/* Safety Flags */}
+
             {safetyFlags.length > 0 && (
               <div style={{ marginBottom: 16, background: "#fff5f5", border: "1px solid #ff6b6b30", borderRadius: 8, padding: "12px 16px" }}>
                 <p style={{ color: "#ff6b6b", fontSize: 13, fontWeight: 600, margin: "0 0 8px" }}>Safety Flags</p>
@@ -329,7 +329,7 @@ export default function Consultation() {
               </div>
             )}
 
-            {/* Recommended Tests */}
+
             {recommendedTests.length > 0 && (
               <div style={{ marginBottom: 16 }}>
                 <p style={{ color: "#666", fontSize: 13, marginBottom: 8, fontWeight: 600 }}>Recommended Tests</p>
@@ -343,7 +343,7 @@ export default function Consultation() {
               </div>
             )}
 
-            {/* Prescriptions Table */}
+
             {prescriptions.length > 0 && (
               <div>
                 <p style={{ color: "#666", fontSize: 13, marginBottom: 8, fontWeight: 600 }}>Prescriptions</p>

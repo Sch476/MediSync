@@ -9,16 +9,16 @@ class Prescription(BaseModel):
     dosage: str
     frequency: str = ""
     duration: str = ""
-    is_new: Optional[bool] = None       # Newly prescribed in this visit
-    stopped: Optional[bool] = None      # Discontinued in this visit
-    is_covered: Optional[bool] = None   # RAG policy check result
-    alternative: Optional[str] = None   # suggested generic if not covered
+    is_new: Optional[bool] = None
+    stopped: Optional[bool] = None
+    is_covered: Optional[bool] = None
+    alternative: Optional[str] = None
 
 
 class ClinicalNoteCreate(BaseModel):
     patient_id: str
     patient_name: str
-    raw_transcript: str  # Original speech-to-text transcript
+    raw_transcript: str
     symptoms: List[str] = []
     diagnosis: str = ""
     prescriptions: List[Prescription] = []
@@ -38,9 +38,7 @@ class ClinicalNoteInDB(BaseModel):
     prescriptions: List[Prescription]
     icd_codes: List[str]
     notes: Optional[str] = None
-    # FHIR-compliant structured JSON
     fhir_encounter: Optional[dict] = None
-    # Policy coverage check results
     policy_warnings: List[str] = []
     created_at: datetime = Field(default_factory=datetime.utcnow)
 

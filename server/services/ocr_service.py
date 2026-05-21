@@ -26,7 +26,6 @@ async def extract_bill_items(image_path: str) -> dict:
     if raw_text.startswith("OCR Error"):
         return {"error": raw_text, "raw_text": "", "items": []}
 
-    # Parse line items from OCR text
     items = _parse_bill_text(raw_text)
 
     return {
@@ -49,9 +48,6 @@ def _parse_bill_text(text: str) -> List[dict]:
         if not line:
             continue
 
-        # Pattern: description followed by amount (common formats)
-        # e.g., "Consultation Fee     500.00"
-        # e.g., "Room Charges (3 days) ... Rs. 15,000"
         amount_patterns = [
             r'(.+?)\s+(?:Rs\.?\s*)?(\d[\d,]*\.?\d*)\s*$',
             r'(.+?)\s+(?:(?:Rs\.?|₹)\s*)?(\d[\d,]*\.?\d*)\s*$',
@@ -64,7 +60,6 @@ def _parse_bill_text(text: str) -> List[dict]:
                 description = match.group(1).strip()
                 amount_str = match.group(2).replace(",", "")
 
-                # Skip header/total lines
                 skip_words = ["total", "subtotal", "date", "hospital", "patient", "bill no", "invoice"]
                 if any(w in description.lower() for w in skip_words):
                     continue
@@ -81,7 +76,6 @@ def _parse_bill_text(text: str) -> List[dict]:
                     continue
                 break
 
-    # If no items parsed, create a single item with the full text
     if not items and text.strip():
         items.append({
             "description": "Unparsed bill — see raw text",

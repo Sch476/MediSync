@@ -142,7 +142,7 @@ export default function SubmitClaim() {
       <h1 style={{ color: "#333", fontSize: 28, marginBottom: 4 }}>Submit Insurance Claim</h1>
       <p style={{ color: "#666", fontSize: 15, marginBottom: 32 }}>Select patient, pick the doctor's note, add billing details</p>
 
-      {/* Step 1 — Patient & Note */}
+
       <div style={{ ...card, marginBottom: 20 }}>
         <h3 style={{ color: "#333", fontSize: 16, marginTop: 0, marginBottom: 16 }}>Patient & Clinical Note</h3>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -183,7 +183,7 @@ export default function SubmitClaim() {
         )}
       </div>
 
-      {/* Step 2 — Room & Billing */}
+
       <div style={{ ...card, marginBottom: 20 }}>
         <h3 style={{ color: "#333", fontSize: 16, marginTop: 0, marginBottom: 16 }}>Room & Billing</h3>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
@@ -202,7 +202,7 @@ export default function SubmitClaim() {
           </div>
         </div>
 
-        {/* Extra charges */}
+
         <div style={{ marginBottom: 12 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
             <label style={{ color: "#666", fontSize: 13, fontWeight: 600 }}>Extra Charges (optional)</label>
@@ -222,7 +222,7 @@ export default function SubmitClaim() {
         </div>
       </div>
 
-      {/* Bill Summary */}
+
       <div style={{ ...card, marginBottom: 20 }}>
         <h3 style={{ color: "#333", fontSize: 16, marginTop: 0, marginBottom: 16 }}>Bill Summary</h3>
         {[

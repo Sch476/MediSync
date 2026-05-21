@@ -9,13 +9,10 @@ class UserCreate(BaseModel):
     password: str = Field(..., min_length=6)
     full_name: str
     role: Literal["doctor", "insurer", "patient", "hospital"]
-    # Doctor-specific
     license_number: Optional[str] = None
     specialization: Optional[str] = None
-    # Patient-specific
     policy_number: Optional[str] = None
     insurer_name: Optional[str] = None
-    # Hospital-specific
     hospital_name: Optional[str] = None
 
 

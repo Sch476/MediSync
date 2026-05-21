@@ -54,7 +54,7 @@ export default function Login() {
           Don't have an account? <Link to="/register" style={styles.link}>Register</Link>
         </p>
 
-        {/* Demo credentials */}
+
         <div style={styles.demo}>
           <p style={{ fontSize: 12, color: "#666", marginBottom: 6 }}>Demo accounts (seeded):</p>
           {[

@@ -9,7 +9,6 @@ from gtts import gTTS
 from typing import Optional
 
 
-# Supported languages for Indian healthcare context
 SUPPORTED_LANGUAGES = {
     "hi": "Hindi",
     "bn": "Bengali",
@@ -35,7 +34,6 @@ async def translate_text(text: str, target_lang: str = "hi", source_lang: str = 
     try:
         translator = GoogleTranslator(source=source_lang, target=target_lang)
 
-        # deep-translator has a ~5000 char limit per request — chunk if needed
         if len(text) > 4500:
             chunks = _chunk_text(text, 4500)
             translated_chunks = [translator.translate(chunk) for chunk in chunks]
@@ -75,13 +73,11 @@ async def translate_and_speak(
 
     Returns both translated text and audio file path.
     """
-    # Step 1: Translate
     translated = await translate_text(text, target_lang, source_lang)
 
     if translated.startswith("Translation error"):
         return {"translated_text": translated, "audio_path": None, "error": translated}
 
-    # Step 2: Generate audio from translated text
     try:
         audio_path = await text_to_audio(translated, target_lang)
         audio_filename = os.path.basename(audio_path)

@@ -1,7 +1,4 @@
-/**
- * AuthContext — manages JWT auth state and role-based access.
- * Persists token + user in localStorage, provides login/register/logout.
- */
+
 import { createContext, useContext, useState, useEffect } from "react";
 import api from "../utils/api";
 
@@ -12,7 +9,7 @@ export function AuthProvider({ children }) {
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Restore auth state from localStorage on mount
+
   useEffect(() => {
     const savedToken = localStorage.getItem("token");
     const savedUser = localStorage.getItem("user");

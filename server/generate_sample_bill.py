@@ -3,12 +3,10 @@ from PIL import Image, ImageDraw, ImageFont
 import os
 
 def generate_bill():
-    # Canvas: white background, A4-ish width
     width, height = 800, 1100
     img = Image.new("RGB", (width, height), color=(255, 255, 255))
     draw = ImageDraw.Draw(img)
 
-    # Try to use a decent font, fall back to default
     try:
         font_bold  = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 22)
         font_title = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 28)
@@ -20,13 +18,11 @@ def generate_bill():
         font_small = font_bold
         font_med   = font_bold
 
-    # ── Header ──
-    draw.rectangle([0, 0, width, 90], fill=(0, 82, 136))          # blue banner
+    draw.rectangle([0, 0, width, 90], fill=(0, 82, 136))
     draw.text((40, 18), "APOLLO CITY HOSPITAL", font=font_title, fill="white")
     draw.text((40, 54), "123, MG Road, Bengaluru - 560001  |  Ph: 080-4567-8900", font=font_small, fill=(200, 230, 255))
 
-    # ── Bill header block ──
-    draw.rectangle([0, 90, width, 92], fill=(200, 200, 200))       # thin divider
+    draw.rectangle([0, 90, width, 92], fill=(200, 200, 200))
 
     y = 110
     draw.text((40, y),        "HOSPITAL BILL / TAX INVOICE",  font=font_bold,  fill=(0,0,0))
@@ -54,7 +50,6 @@ def generate_bill():
     draw.text((40,  y),       "Diagnosis:",     font=font_small, fill=(100,100,100))
     draw.text((170, y),       "Acute Upper Respiratory Infection (J06.9)", font=font_med, fill=(0,0,0))
 
-    # ── Table header ──
     y += 44
     draw.rectangle([30, y, width-30, y+32], fill=(0, 82, 136))
     draw.text((40,  y+7),  "DESCRIPTION",       font=font_small, fill="white")
@@ -62,7 +57,6 @@ def generate_bill():
     draw.text((440, y+7),  "UNIT RATE",         font=font_small, fill="white")
     draw.text((600, y+7),  "AMOUNT (Rs.)",      font=font_small, fill="white")
 
-    # ── Line items ──
     items = [
         ("Doctor Consultation Fee",             "",    "",      "600.00"),
         ("Room Charges - Semi-Private (2 days)","2",   "3000",  "6000.00"),
@@ -90,7 +84,6 @@ def generate_bill():
         draw.text((445, row_y+7), rate, font=font_small, fill=(30,30,30))
         draw.text((610, row_y+7), amt,  font=font_small, fill=(30,30,30))
 
-    # ── Totals ──
     y += len(items) * 30 + 10
     draw.rectangle([30, y, width-30, y+1], fill=(180,180,180))
 
@@ -107,7 +100,6 @@ def generate_bill():
     draw.text((440, y+8),  "TOTAL AMOUNT:",     font=font_bold,  fill="white")
     draw.text((600, y+8),  "Rs. 11,707.50",     font=font_bold,  fill=(255, 220, 100))
 
-    # ── Footer ──
     y += 56
     draw.rectangle([30, y, width-30, y+1], fill=(200,200,200))
     y += 12
@@ -117,7 +109,6 @@ def generate_bill():
     y += 24
     draw.text((40, y),   "For queries: billing@apollocityhospital.com | 080-4567-8900 Ext. 201", font=font_small, fill=(150,150,150))
 
-    # Save
     os.makedirs("uploads", exist_ok=True)
     out = "uploads/sample_hospital_bill.png"
     img.save(out, "PNG", dpi=(150, 150))

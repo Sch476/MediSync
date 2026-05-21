@@ -30,32 +30,27 @@ async def upload_hospital_bill(
 
     Returns structured bill breakdown with coverage analysis.
     """
-    # Validate file type
     allowed_types = ["image/jpeg", "image/png", "image/jpg", "image/tiff", "application/pdf"]
     if file.content_type not in allowed_types:
         raise HTTPException(status_code=400, detail="Upload a bill image (JPEG/PNG) or PDF")
 
-    # Save uploaded file
     os.makedirs("uploads/bills", exist_ok=True)
     file_path = f"uploads/bills/{current_user['id']}_{file.filename}"
     with open(file_path, "wb") as f:
         content = await file.read()
         f.write(content)
 
-    # Step 1: OCR extract text and parse line items
     bill_data = await extract_bill_items(file_path)
 
     if bill_data.get("error"):
         raise HTTPException(status_code=400, detail=bill_data["error"])
 
-    # Step 2: LLM analyzes which charges are covered
     policy_info = ""
     if current_user.get("policy_number"):
         policy_info = f"Policy: {current_user['policy_number']}, Insurer: {current_user.get('insurer_name', 'Unknown')}"
 
     analysis = await analyze_bill(bill_data["items"], policy_info)
 
-    # Save bill analysis to MongoDB
     db = get_db()
     bill_doc = {
         "patient_id": current_user["id"],
@@ -88,13 +83,10 @@ async def translate_discharge_summary(
     2. deep-translator translates to target language (Hindi, Bengali, etc.)
     3. gTTS generates downloadable MP3 audio
     """
-    # Step 1: Simplify the discharge summary
     simplified = await simplify_discharge_summary(summary_text)
 
-    # Step 2: Translate and generate audio
     result = await translate_and_speak(simplified, target_language)
 
-    # Save to MongoDB
     db = get_db()
     doc = {
         "patient_id": current_user["id"],
@@ -129,14 +121,12 @@ async def submit_health_check(
     """
     db = get_db()
 
-    # Find patient's most recent doctor (from latest clinical note)
     latest_note = await db.clinical_notes.find_one(
         {"patient_id": current_user["id"]},
         sort=[("created_at", -1)],
     )
     doctor_id = latest_note["doctor_id"] if latest_note else "unassigned"
 
-    # Auto-flag logic: check for concerning symptoms
     is_flagged, flag_reasons = _evaluate_health_check(check_data)
 
     check_doc = {
@@ -153,7 +143,7 @@ async def submit_health_check(
         "additional_notes": check_data.additional_notes,
         "is_flagged": is_flagged,
         "flag_reasons": flag_reasons,
-        "doctor_notified": is_flagged,  # Auto-notify if flagged
+        "doctor_notified": is_flagged,
         "created_at": datetime.utcnow(),
     }
 
@@ -194,7 +184,6 @@ async def get_my_claims(current_user: dict = Depends(patient_role)):
     for claim in claims:
         claim["id"] = str(claim["_id"])
         del claim["_id"]
-        # Add plain-language status explanation
         claim["status_explanation"] = _explain_claim_status(claim)
 
     return claims
@@ -222,35 +211,29 @@ def _evaluate_health_check(check: HealthCheckCreate) -> tuple:
     """
     flags = []
 
-    # Wound concerns
     if check.wound_condition in ("discharge", "bleeding"):
         flags.append(f"Wound condition: {check.wound_condition} — needs immediate attention")
     elif check.wound_condition in ("red", "swollen"):
         flags.append(f"Wound condition: {check.wound_condition} — possible infection")
 
-    # Fever
     if check.fever:
         flags.append("Patient reports fever")
     if check.temperature and check.temperature >= 38.5:
         flags.append(f"High temperature: {check.temperature}°C")
 
-    # Pain
     if check.pain_level >= 7:
         flags.append(f"Severe pain level: {check.pain_level}/10")
     elif check.pain_level >= 5:
         flags.append(f"Moderate pain level: {check.pain_level}/10")
 
-    # Appetite and mobility
     if check.appetite == "none":
         flags.append("No appetite — possible complication")
     if check.mobility == "bedridden":
         flags.append("Patient is bedridden — may need follow-up")
 
-    # Medication compliance
     if not check.medication_taken:
         flags.append("Patient has NOT taken prescribed medication")
 
-    # Flag if 2+ concerning indicators, or any severe one
     severe_flags = [f for f in flags if "immediate" in f or "bleeding" in f or "Severe" in f or "High temp" in f]
     is_flagged = len(flags) >= 2 or len(severe_flags) > 0
 
@@ -294,7 +277,6 @@ async def upload_my_policy(
         content = await file.read()
         f.write(content)
 
-    # Use patient_id as the unique policy_id so doctor can auto-fetch it
     policy_id = f"patient_{current_user['id']}"
     result = await index_policy_pdf(file_path, policy_id, insurer_name)
 
@@ -302,7 +284,6 @@ async def upload_my_policy(
         raise HTTPException(status_code=400, detail=result["error"])
 
     db = get_db()
-    # Save to policy_documents collection
     await db.policy_documents.update_one(
         {"policy_id": policy_id},
         {"$set": {
@@ -315,7 +296,6 @@ async def upload_my_policy(
         }},
         upsert=True,
     )
-    # Link policy_id to patient's user record
     await db.users.update_one(
         {"_id": ObjectId(current_user["id"])},
         {"$set": {"policy_id": policy_id, "insurer_name": insurer_name}},

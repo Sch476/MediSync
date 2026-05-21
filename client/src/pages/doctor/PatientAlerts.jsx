@@ -44,7 +44,7 @@ export default function PatientAlerts() {
       setAlerts((prev) => prev.filter((a) => (a.id || a._id) !== alertId));
       toast.success("Alert acknowledged — patient marked as reviewed");
     } catch {
-      // Endpoint may not exist yet — just remove from UI optimistically
+
       setAlerts((prev) => prev.filter((a) => (a.id || a._id) !== alertId));
       toast.success("Alert acknowledged");
     } finally {
@@ -95,7 +95,7 @@ export default function PatientAlerts() {
                   borderLeft: `4px solid ${color}`,
                 }}
               >
-                {/* Header */}
+
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <div style={{ width: 40, height: 40, borderRadius: "50%", background: `${color}20`, display: "flex", alignItems: "center", justifyContent: "center", color }}>
@@ -115,7 +115,7 @@ export default function PatientAlerts() {
                   </span>
                 </div>
 
-                {/* Vitals row */}
+
                 <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
                   {alert.temperature && (
                     <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", background: "#fff5f5", borderRadius: 8, fontSize: 13 }}>
@@ -146,7 +146,7 @@ export default function PatientAlerts() {
                   )}
                 </div>
 
-                {/* Flag reasons */}
+
                 {alert.flag_reasons?.length > 0 && (
                   <div style={{ marginBottom: 16 }}>
                     <p style={{ margin: "0 0 8px", fontSize: 13, color: "#636e72", fontWeight: 600 }}>Flag reasons:</p>
@@ -158,14 +158,14 @@ export default function PatientAlerts() {
                   </div>
                 )}
 
-                {/* Patient notes */}
+
                 {alert.additional_notes && (
                   <div style={{ marginBottom: 16, padding: "10px 14px", background: "#f8f9fa", borderRadius: 8, fontSize: 13, color: "#636e72", fontStyle: "italic" }}>
                     Patient note: "{alert.additional_notes}"
                   </div>
                 )}
 
-                {/* Acknowledge button */}
+
                 <button
                   onClick={() => acknowledge(id)}
                   disabled={acknowledging === id}

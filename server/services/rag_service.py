@@ -12,7 +12,6 @@ from typing import List, Optional
 from config import settings
 
 
-# Initialize ChromaDB with local persistent storage
 chroma_client = chromadb.Client(ChromaSettings(
     persist_directory=settings.CHROMA_PERSIST_DIR,
     anonymized_telemetry=False,
@@ -54,18 +53,14 @@ async def index_policy_pdf(pdf_path: str, policy_id: str, insurer_name: str) -> 
 
     Returns metadata about the indexed document.
     """
-    # Extract text from PDF
     text = extract_text_from_pdf(pdf_path)
     if not text.strip():
         return {"error": "No text could be extracted from the PDF"}
 
-    # Chunk the text for better retrieval
     chunks = chunk_text(text)
 
-    # Store in ChromaDB
     collection = get_policy_collection(policy_id)
 
-    # Add chunks with metadata
     ids = [f"{policy_id}_chunk_{i}" for i in range(len(chunks))]
     metadatas = [{"policy_id": policy_id, "insurer": insurer_name, "chunk_index": i} for i in range(len(chunks))]
 
@@ -103,7 +98,6 @@ async def query_policy(policy_id: str, query: str, n_results: int = 3) -> str:
             if context.strip():
                 return context
 
-        # ChromaDB has no data — try to re-index from saved PDF
         reindexed = await _try_reindex(policy_id)
         if reindexed:
             results = collection.query(query_texts=[query], n_results=n_results)
@@ -139,13 +133,11 @@ async def check_medication_coverage(policy_id: str, medication: str) -> dict:
     """Check if a specific medication is covered under a policy using RAG + LLM."""
     from services.llm_service import check_policy_coverage
 
-    # Query vector store for relevant policy sections
     policy_context = await query_policy(
         policy_id,
         f"coverage for {medication} medication drug formulary excluded medicines"
     )
 
-    # Use LLM to interpret the policy context
     result = await check_policy_coverage(medication, policy_context)
     return result
 

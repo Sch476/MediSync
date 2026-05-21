@@ -7,9 +7,9 @@ from datetime import datetime
 class ClaimItem(BaseModel):
     """Individual line item in a claim."""
     description: str
-    icd_code: Optional[str] = None  # ICD-10 code
+    icd_code: Optional[str] = None
     amount: float
-    category: str  # consultation, medication, procedure, room, lab
+    category: str
 
 
 class ClaimCreate(BaseModel):
@@ -22,7 +22,7 @@ class ClaimCreate(BaseModel):
     icd_codes: List[str] = []
     items: List[ClaimItem] = []
     total_amount: float
-    room_type: Optional[str] = None  # general, semi-private, private, icu
+    room_type: Optional[str] = None
 
 
 class MedicationSubstitution(BaseModel):
@@ -63,13 +63,11 @@ class ClaimInDB(BaseModel):
     items: List[ClaimItem] = []
     total_amount: float
     room_type: Optional[str] = None
-    # Adjudication fields
     status: Literal["pending", "approved", "rejected", "flagged"] = "pending"
     adjudication_notes: Optional[str] = None
     rejection_reason: Optional[str] = None
     flag_reasons: List[str] = []
     approved_amount: Optional[float] = None
-    # Timestamps
     submitted_at: datetime = Field(default_factory=datetime.utcnow)
     adjudicated_at: Optional[datetime] = None
 

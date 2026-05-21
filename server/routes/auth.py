@@ -14,12 +14,10 @@ async def register(user_data: UserCreate):
     """Register a new user (doctor, insurer, or patient)."""
     db = get_db()
 
-    # Check if email already exists
     existing = await db.users.find_one({"email": user_data.email})
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
 
-    # Build user document
     user_doc = {
         "email": user_data.email,
         "hashed_password": hash_password(user_data.password),
@@ -35,7 +33,6 @@ async def register(user_data: UserCreate):
     result = await db.users.insert_one(user_doc)
     user_id = str(result.inserted_id)
 
-    # Generate JWT token
     token = create_access_token(data={"sub": user_id, "role": user_data.role})
 
     return {
@@ -83,11 +80,9 @@ async def get_me(current_user: dict = None):
     """Get current user profile. Requires auth middleware at route level."""
     from fastapi import Depends
     from middleware.auth_middleware import get_current_user
-    # This is re-registered below with proper dependency
     pass
 
 
-# Proper /me endpoint with dependency injection
 from fastapi import Depends
 from middleware.auth_middleware import get_current_user
 

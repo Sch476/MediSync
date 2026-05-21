@@ -52,6 +52,7 @@ export default function InsurerDashboard() {
     ? [
         { label: "Total Claims", value: stats.total_claims ?? 0, icon: <FiFileText size={28} />, color: "#4ecdc4" },
         { label: "Pending", value: stats.pending ?? 0, icon: <FiClock size={28} />, color: "#ffa502" },
+        { label: "Adjudicated", value: stats.adjudicated ?? 0, icon: <FiFileText size={28} />, color: "#3742fa" },
         { label: "Approved", value: stats.approved ?? 0, icon: <FiCheckCircle size={28} />, color: "#2ed573" },
         { label: "Rejected", value: stats.rejected ?? 0, icon: <FiXCircle size={28} />, color: "#ff6b6b" },
       ]
@@ -74,7 +75,7 @@ export default function InsurerDashboard() {
         Here is an overview of your claims dashboard.
       </p>
 
-      {/* Stat Cards */}
+
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 20, marginBottom: 32 }}>
         {statCards.map((card) => (
           <div key={card.label} style={{ ...cardStyle, display: "flex", alignItems: "center", gap: 16 }}>
@@ -100,7 +101,7 @@ export default function InsurerDashboard() {
         ))}
       </div>
 
-      {/* Quick Action */}
+
       <div style={{ ...cardStyle, marginBottom: 32 }}>
         <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 12, color: "#2d3436" }}>Quick Actions</h2>
         <p style={{ color: "#636e72", marginBottom: 16, fontSize: 14 }}>
@@ -129,23 +130,23 @@ export default function InsurerDashboard() {
         </button>
       </div>
 
-      {/* Batch Result */}
+
       {batchResult && (
         <div style={{ ...cardStyle }}>
           <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 16, color: "#2d3436" }}>
             Batch Adjudication Results
           </h2>
           <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
-            <div style={{ padding: "12px 20px", borderRadius: 8, background: "#2ed57318", color: "#2ed573", fontWeight: 600 }}>
-              {batchResult.approved ?? 0} Approved
+            <div style={{ padding: "12px 20px", borderRadius: 8, background: "#3742fa18", color: "#3742fa", fontWeight: 600 }}>
+              {batchResult.adjudicated ?? 0} Adjudicated (awaiting your decision)
             </div>
             <div style={{ padding: "12px 20px", borderRadius: 8, background: "#ff634818", color: "#ff6348", fontWeight: 600 }}>
-              {batchResult.flagged ?? 0} Flagged
-            </div>
-            <div style={{ padding: "12px 20px", borderRadius: 8, background: "#ff6b6b18", color: "#ff6b6b", fontWeight: 600 }}>
-              {batchResult.rejected ?? 0} Rejected
+              {batchResult.flagged ?? 0} Flagged (manual review)
             </div>
           </div>
+          <p style={{ marginTop: 12, fontSize: 13, color: "#636e72" }}>
+            Go to the Claims page and use the checkboxes to batch-approve or batch-reject adjudicated claims.
+          </p>
         </div>
       )}
     </div>

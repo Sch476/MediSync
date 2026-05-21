@@ -11,7 +11,6 @@ async def connect_db():
     global client, db
     client = AsyncIOMotorClient(settings.MONGODB_URI)
     db = client[settings.DB_NAME]
-    # Create indexes for faster queries
     await db.users.create_index("email", unique=True)
     await db.claims.create_index("patient_id")
     await db.claims.create_index("doctor_id")

@@ -162,7 +162,7 @@ export default function PatientDashboard() {
         Here is your health overview for today.
       </p>
 
-      {/* Stat Cards */}
+
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 20, marginBottom: 32 }}>
         {statCards.map((stat) => (
           <div key={stat.label} style={{ ...cardStyle, display: "flex", alignItems: "center", gap: 16 }}>
@@ -188,7 +188,7 @@ export default function PatientDashboard() {
         ))}
       </div>
 
-      {/* Flagged Alert */}
+
       {lastCheck?.flagged && (
         <div
           style={{
@@ -221,7 +221,7 @@ export default function PatientDashboard() {
         </div>
       )}
 
-      {/* Quick Actions */}
+
       <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 16, color: "#2d3436" }}>Quick Actions</h2>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 20 }}>
         {quickActions.map((action) => (

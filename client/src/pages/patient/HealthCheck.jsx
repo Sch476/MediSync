@@ -25,6 +25,28 @@ const WOUND_OPTIONS = ["normal", "red", "swollen", "discharge", "bleeding"];
 const APPETITE_OPTIONS = ["normal", "reduced", "none"];
 const MOBILITY_OPTIONS = ["normal", "limited", "bedridden"];
 
+const HEALTHY_SAMPLE = {
+  wound_condition: "normal",
+  fever: false,
+  temperature: "",
+  pain_level: 2,
+  appetite: "normal",
+  mobility: "normal",
+  medication_taken: true,
+  additional_notes: "Feeling much better today. Wound healing well.",
+};
+
+const CONCERNING_SAMPLE = {
+  wound_condition: "bleeding",
+  fever: true,
+  temperature: "39.2",
+  pain_level: 8,
+  appetite: "none",
+  mobility: "bedridden",
+  medication_taken: false,
+  additional_notes: "Wound looks worse, can't keep food down, very weak.",
+};
+
 export default function HealthCheck() {
   const [form, setForm] = useState({
     wound_condition: "normal",
@@ -75,8 +97,8 @@ export default function HealthCheck() {
       }
       const res = await api.post("/patient/health-check", payload);
       setResult(res.data);
-      if (res.data.flagged) {
-        toast.error("Health check flagged - please review the alerts");
+      if (res.data.is_flagged) {
+        toast.error("Health check flagged — your doctor has been notified");
       } else {
         toast.success("Health check submitted successfully!");
       }
@@ -115,24 +137,42 @@ export default function HealthCheck() {
       <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 8, color: "#2d3436" }}>
         Daily Health Check
       </h1>
-      <p style={{ color: "#636e72", marginBottom: 32, fontSize: 16 }}>
+      <p style={{ color: "#636e72", marginBottom: 16, fontSize: 16 }}>
         Complete your daily health assessment. This helps us monitor your recovery.
       </p>
 
-      {/* Result Alert */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 24, padding: "10px 14px", background: "#fffbe6", border: "1px dashed #ffd666", borderRadius: 8, alignItems: "center", flexWrap: "wrap" }}>
+        <span style={{ fontSize: 13, color: "#7a6a3a", marginRight: 4 }}>Testing only — load a sample:</span>
+        <button
+          type="button"
+          onClick={() => setForm(HEALTHY_SAMPLE)}
+          style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 12px", background: "#fff", color: "#2ed573", border: "1px solid #2ed57340", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+        >
+          <FiCheckCircle size={12} /> Healthy
+        </button>
+        <button
+          type="button"
+          onClick={() => setForm(CONCERNING_SAMPLE)}
+          style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 12px", background: "#fff", color: "#ff6b6b", border: "1px solid #ff6b6b40", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+        >
+          <FiAlertTriangle size={12} /> Concerning
+        </button>
+      </div>
+
+
       {result && (
         <div
           style={{
             ...cardStyle,
             marginBottom: 24,
-            background: result.flagged ? `${DANGER}10` : `${SUCCESS}10`,
-            border: `1px solid ${result.flagged ? `${DANGER}40` : `${SUCCESS}40`}`,
+            background: result.is_flagged ? `${DANGER}10` : `${SUCCESS}10`,
+            border: `1px solid ${result.is_flagged ? `${DANGER}40` : `${SUCCESS}40`}`,
             display: "flex",
             alignItems: "flex-start",
             gap: 16,
           }}
         >
-          {result.flagged ? (
+          {result.is_flagged ? (
             <FiAlertTriangle size={24} color={DANGER} style={{ flexShrink: 0, marginTop: 2 }} />
           ) : (
             <FiCheckCircle size={24} color={SUCCESS} style={{ flexShrink: 0, marginTop: 2 }} />
@@ -141,20 +181,20 @@ export default function HealthCheck() {
             <div
               style={{
                 fontWeight: 600,
-                color: result.flagged ? DANGER : SUCCESS,
+                color: result.is_flagged ? DANGER : SUCCESS,
                 marginBottom: 8,
                 fontSize: 16,
               }}
             >
-              {result.flagged ? "Health Check Flagged" : "All Clear!"}
+              {result.is_flagged ? "Health Check Flagged" : "All Clear!"}
             </div>
-            {result.flagged && result.flag_reasons?.length > 0 ? (
+            {result.is_flagged && result.flag_reasons?.length > 0 ? (
               <ul style={{ margin: 0, paddingLeft: 20, color: "#2d3436" }}>
                 {result.flag_reasons.map((reason, i) => (
                   <li key={i} style={{ marginBottom: 4 }}>{reason}</li>
                 ))}
               </ul>
-            ) : !result.flagged ? (
+            ) : !result.is_flagged ? (
               <p style={{ margin: 0, color: "#2d3436" }}>
                 Your health check looks good. Keep up the good work!
               </p>
@@ -163,10 +203,10 @@ export default function HealthCheck() {
         </div>
       )}
 
-      {/* Health Check Form */}
+
       <form onSubmit={handleSubmit}>
         <div style={{ ...cardStyle, marginBottom: 24, display: "flex", flexDirection: "column", gap: 24 }}>
-          {/* Wound Condition */}
+
           <div>
             <label style={labelStyle}>Wound Condition</label>
             <div style={radioGroupStyle}>
@@ -186,7 +226,7 @@ export default function HealthCheck() {
             </div>
           </div>
 
-          {/* Fever */}
+
           <div>
             <label style={{ ...labelStyle, display: "flex", alignItems: "center", gap: 10 }}>
               <input
@@ -222,7 +262,7 @@ export default function HealthCheck() {
             )}
           </div>
 
-          {/* Pain Level */}
+
           <div>
             <label style={labelStyle}>
               Pain Level: <span style={{ color: PRIMARY, fontSize: 18 }}>{form.pain_level}</span>
@@ -241,7 +281,7 @@ export default function HealthCheck() {
             </div>
           </div>
 
-          {/* Appetite */}
+
           <div>
             <label style={labelStyle}>Appetite</label>
             <div style={radioGroupStyle}>
@@ -261,7 +301,7 @@ export default function HealthCheck() {
             </div>
           </div>
 
-          {/* Mobility */}
+
           <div>
             <label style={labelStyle}>Mobility</label>
             <div style={radioGroupStyle}>
@@ -281,7 +321,7 @@ export default function HealthCheck() {
             </div>
           </div>
 
-          {/* Medication Taken */}
+
           <div>
             <label style={{ ...labelStyle, display: "flex", alignItems: "center", gap: 10 }}>
               <input
@@ -294,7 +334,7 @@ export default function HealthCheck() {
             </label>
           </div>
 
-          {/* Additional Notes */}
+
           <div>
             <label style={labelStyle}>Additional Notes</label>
             <textarea
@@ -317,7 +357,7 @@ export default function HealthCheck() {
             />
           </div>
 
-          {/* Submit */}
+
           <button
             type="submit"
             disabled={loading}
@@ -344,7 +384,7 @@ export default function HealthCheck() {
         </div>
       </form>
 
-      {/* Health Check History */}
+
       <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 16, color: "#2d3436" }}>
         <FiClock style={{ verticalAlign: "middle", marginRight: 8 }} />
         Health Check History
@@ -357,7 +397,7 @@ export default function HealthCheck() {
         </div>
       ) : (
         <div style={{ position: "relative", paddingLeft: 24 }}>
-          {/* Timeline line */}
+
           <div
             style={{
               position: "absolute",
@@ -370,10 +410,10 @@ export default function HealthCheck() {
           />
           {history.map((check, idx) => {
             const date = new Date(check.date || check.created_at);
-            const isFlagged = check.flagged;
+            const isFlagged = check.is_flagged;
             return (
               <div key={idx} style={{ position: "relative", marginBottom: 16 }}>
-                {/* Timeline dot */}
+
                 <div
                   style={{
                     position: "absolute",

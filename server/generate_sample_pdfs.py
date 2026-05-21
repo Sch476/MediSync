@@ -52,15 +52,11 @@ class PolicyPDF(FPDF):
         self.multi_cell(0, 6, value)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# PDF 1: Star Health Standard  -  Policy STD-78901 (Priya Patel)
-# ─────────────────────────────────────────────────────────────────────────────
 def generate_star_health():
     pdf = PolicyPDF()
     pdf.set_auto_page_break(auto=True, margin=15)
     pdf.add_page()
 
-    # Cover block
     pdf.set_font("Helvetica", "B", 20)
     pdf.set_text_color(30, 120, 150)
     pdf.cell(0, 12, "STAR HEALTH AND ALLIED INSURANCE CO. LTD.", align="C", new_x="LMARGIN", new_y="NEXT")
@@ -77,7 +73,6 @@ def generate_star_health():
     pdf.line(pdf.l_margin, pdf.get_y(), pdf.w - pdf.r_margin, pdf.get_y())
     pdf.ln(6)
 
-    # Policy Details
     pdf.section_title("SECTION 1  -  POLICY SCHEDULE")
     pdf.key_value("Policy Number", "STD-78901")
     pdf.key_value("Insured Name", "Ms. Priya Patel")
@@ -89,7 +84,6 @@ def generate_star_health():
     pdf.key_value("Network Hospitals", "6,000+ hospitals across India")
     pdf.ln(4)
 
-    # Coverage
     pdf.section_title("SECTION 2  -  IN-PATIENT HOSPITALISATION BENEFITS")
     pdf.body_text(
         "The Company will indemnify the Insured for In-Patient Hospitalisation expenses incurred "
@@ -121,7 +115,6 @@ def generate_star_health():
     pdf.bullet("Covered as part of room rent package up to the eligible room rent limit.", indent=14)
     pdf.ln(2)
 
-    # Pharmacy / Drug Coverage
     pdf.section_title("SECTION 3  -  PHARMACY AND DRUG FORMULARY")
     pdf.body_text(
         "3.1  In-Patient Pharmacy Coverage\n"
@@ -179,7 +172,6 @@ def generate_star_health():
     )
     pdf.ln(2)
 
-    # Pre-existing diseases
     pdf.section_title("SECTION 4  -  PRE-EXISTING DISEASE (PED) WAITING PERIOD")
     pdf.body_text(
         "4.1  All pre-existing diseases declared and accepted at the time of policy inception are "
@@ -202,7 +194,6 @@ def generate_star_health():
         pdf.bullet(s, indent=14)
     pdf.ln(2)
 
-    # General exclusions
     pdf.section_title("SECTION 5  -  GENERAL EXCLUSIONS")
     exclusions = [
         "War, terrorism, nuclear or radioactive contamination.",
@@ -221,7 +212,6 @@ def generate_star_health():
         pdf.bullet(e, indent=14)
     pdf.ln(2)
 
-    # Claim process
     pdf.section_title("SECTION 6  -  CLAIM PROCEDURE")
     pdf.body_text("6.1  Cashless Hospitalisation (Network Hospitals)")
     pdf.bullet("Inform Star Health TPA Helpdesk at least 3 days before planned admission.", indent=14)
@@ -238,7 +228,6 @@ def generate_star_health():
     pdf.bullet("Claims portal: www.starhealth.in/claims | Toll-free: 1800-425-2255", indent=14)
     pdf.ln(2)
 
-    # Sub-limits
     pdf.section_title("SECTION 7  -  SPECIFIC SUB-LIMITS (STANDARD PLAN)")
     sub_limits = [
         ("Cataract per eye", "Rs. 25,000"),
@@ -253,7 +242,6 @@ def generate_star_health():
         pdf.key_value(item, limit, indent=8)
     pdf.ln(4)
 
-    # Renewal
     pdf.section_title("SECTION 8  -  RENEWAL AND PORTABILITY")
     pdf.body_text(
         "This policy is renewable for life. No-Claim Bonus of 5% of Sum Insured (max 50%) "
@@ -262,7 +250,6 @@ def generate_star_health():
     )
     pdf.ln(4)
 
-    # Signature block
     pdf.set_font("Helvetica", "B", 10)
     pdf.cell(0, 7, "Authorised Signatory  -  Star Health and Allied Insurance Co. Ltd.", new_x="LMARGIN", new_y="NEXT")
     pdf.set_font("Helvetica", "I", 9)
@@ -276,15 +263,11 @@ def generate_star_health():
     return out
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# PDF 2: HDFC Ergo Premium  -  Policy PREM-45678 (Amit Verma)
-# ─────────────────────────────────────────────────────────────────────────────
 def generate_hdfc_ergo():
     pdf = PolicyPDF()
     pdf.set_auto_page_break(auto=True, margin=15)
     pdf.add_page()
 
-    # Cover block
     pdf.set_font("Helvetica", "B", 20)
     pdf.set_text_color(0, 65, 130)
     pdf.cell(0, 12, "HDFC ERGO GENERAL INSURANCE COMPANY LIMITED", align="C", new_x="LMARGIN", new_y="NEXT")
@@ -301,7 +284,6 @@ def generate_hdfc_ergo():
     pdf.line(pdf.l_margin, pdf.get_y(), pdf.w - pdf.r_margin, pdf.get_y())
     pdf.ln(6)
 
-    # Policy Details
     pdf.section_title("SECTION 1  -  POLICY SCHEDULE")
     pdf.key_value("Policy Number", "PREM-45678")
     pdf.key_value("Insured Name", "Mr. Amit Verma")
@@ -314,7 +296,6 @@ def generate_hdfc_ergo():
     pdf.key_value("Network Hospitals", "10,000+ hospitals across India")
     pdf.ln(4)
 
-    # Coverage
     pdf.section_title("SECTION 2  -  IN-PATIENT HOSPITALISATION BENEFITS")
     pdf.body_text(
         "HDFC Ergo Optima Restore covers all medically necessary in-patient hospitalisation for "
@@ -343,7 +324,6 @@ def generate_hdfc_ergo():
     pdf.bullet("Ayurvedic / Homeopathic in-patient treatment covered up to Rs. 30,000 per year.", indent=14)
     pdf.ln(2)
 
-    # Pharmacy
     pdf.section_title("SECTION 3  -  PHARMACY AND DRUG FORMULARY")
     pdf.body_text(
         "3.1  In-Patient Pharmacy\n"
@@ -392,7 +372,6 @@ def generate_hdfc_ergo():
         pdf.bullet(d, indent=14)
     pdf.ln(2)
 
-    # Pre-existing diseases
     pdf.section_title("SECTION 4  -  PRE-EXISTING DISEASE AND WAITING PERIODS")
     pdf.body_text("4.1  Pre-Existing Disease Waiting Period: 24 months (reduced from standard 36 months)")
     pdf.key_value("Declared PED at inception", "Hypertension (controlled)", indent=14)
@@ -408,7 +387,6 @@ def generate_hdfc_ergo():
         pdf.bullet(s, indent=14)
     pdf.ln(2)
 
-    # General exclusions
     pdf.section_title("SECTION 5  -  GENERAL EXCLUSIONS")
     exclusions = [
         "War, terrorism, nuclear or radioactive contamination.",
@@ -425,7 +403,6 @@ def generate_hdfc_ergo():
         pdf.bullet(e, indent=14)
     pdf.ln(2)
 
-    # Claim process
     pdf.section_title("SECTION 6  -  CLAIM PROCEDURE")
     pdf.body_text("6.1  Cashless  -  Planned Hospitalisation")
     pdf.bullet("Notify HDFC Ergo Health TPA at least 48 hours before admission.", indent=14)
@@ -445,7 +422,6 @@ def generate_hdfc_ergo():
     pdf.bullet("Claims portal: www.hdfcergo.com/health-claims | Toll-free: 1800-2700-700", indent=14)
     pdf.ln(2)
 
-    # Premium plan benefits
     pdf.section_title("SECTION 7  -  PREMIUM PLAN EXCLUSIVE BENEFITS")
     benefits = [
         ("Restore Benefit", "Full Sum Insured (Rs. 10 lakhs) auto-restored once per year on full exhaustion  -  no additional premium"),
@@ -460,7 +436,6 @@ def generate_hdfc_ergo():
         pdf.key_value(benefit, detail, indent=8)
     pdf.ln(4)
 
-    # Signature block
     pdf.set_font("Helvetica", "B", 10)
     pdf.cell(0, 7, "Authorised Signatory  -  HDFC Ergo General Insurance Company Limited", new_x="LMARGIN", new_y="NEXT")
     pdf.set_font("Helvetica", "I", 9)
