@@ -9,6 +9,8 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 
+import BlogHome from "./pages/blog/BlogHome";
+
 
 import DoctorDashboard from "./pages/doctor/DoctorDashboard";
 import Consultation from "./pages/doctor/Consultation";
@@ -53,6 +55,7 @@ export default function App() {
 
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/blog" element={<BlogHome />} />
 
 
           <Route path="/doctor" element={
