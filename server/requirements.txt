@@ -34,6 +34,7 @@ gTTS>=2.5.0
 pydantic>=2.7.0
 pydantic-settings>=2.3.0
 python-dotenv>=1.0.0
+openpyxl>=3.1
 
 # FHIR
 fhir.resources>=7.1.0
