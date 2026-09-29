@@ -2,7 +2,7 @@
 
 ### AI-Powered Healthcare Middleware for Indian Healthcare
 
-> B.Tech Final Year Project | 100% Free Stack — No paid APIs, no OpenAI, no AWS
+
 
 ---
 
@@ -180,18 +180,7 @@ cd client
 npm install
 npm run dev
 
-# 6. Open http://localhost:5173
-```
 
-### Demo Logins (password: `password123`)
-
-| Role | Email | What you'll see |
-|------|-------|-----------------|
-| Doctor | doctor@demo.com | Smart Scribe, clinical notes, policy upload |
-| Insurer | insurer@demo.com | Claims list, auto-adjudication, analytics |
-| Patient | patient@demo.com | Bill decoder, translator, health checks, claims |
-
----
 
 ## Project Structure
 
@@ -227,36 +216,3 @@ medisync/
 └── README.md
 ```
 
----
-
-## Environment Variables
-
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `MONGODB_URI` | Yes | MongoDB Atlas connection string |
-| `JWT_SECRET` | Yes | Random secret for JWT tokens |
-| `LLM_PROVIDER` | No | `huggingface` or `gemini` (default: huggingface) |
-| `HF_API_TOKEN` | No | HuggingFace API token (free at huggingface.co) |
-| `GEMINI_API_KEY` | No | Google Gemini key (free at aistudio.google.com) |
-
-The app works with **mock LLM responses** even without API keys — great for demos.
-
----
-
-## API Docs
-
-Backend auto-generates interactive docs:
-- **Swagger UI**: http://localhost:8000/docs
-- **ReDoc**: http://localhost:8000/redoc
-
----
-
-## Docker (Alternative)
-
-```bash
-cp .env.example .env
-# Edit .env
-docker-compose up --build
-# Frontend: http://localhost:5173
-# Backend: http://localhost:8000
-```
