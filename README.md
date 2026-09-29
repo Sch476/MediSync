@@ -260,3 +260,6 @@ docker-compose up --build
 # Frontend: http://localhost:5173
 # Backend: http://localhost:8000
 ```
+
+
+#new line claude edit test
